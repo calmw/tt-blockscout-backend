@@ -23,3 +23,44 @@
 2025-04-22T16:56:53.056 application=ethereum_jsonrpc fetcher=internal_transaction count=10 [error] 413 Request Entity Too Large returned from single request batch. Cannot shrink batch further. The actual batched request was [%{id: 0, params: ["0x8f4f595f7c695ff964e2ee3e4c6d1747c2c99d69b359106d4150179921db5d01", %{:timeout => "5s", "tracer" => "callTracer"}], method: "debug_traceTransaction", jsonrpc: "2.0"}]. The actual response of the method was :timeout.
 2025-04-22T16:56:58.068 application=ethereum_jsonrpc fetcher=internal_transaction count=10 [error] 413 Request Entity Too Large returned from single request batch. Cannot shrink batch further. The actual batched request was [%{id: 0, params: ["0x921d6b27c225b0f41987666418a1ce4fec42b36c1a8efaccc9d3bcd37d425a9d", %{:timeout => "5s", "tracer" => "callTracer"}], method: "debug_traceTransaction", jsonrpc: "2.0"}]. The actual response of the method was :timeout.
 2025-04-22T16:59:58.515 application=ethereum_jsonrpc fetcher=internal_transaction count=10 [error] 413 Request Entity Too Large returned from single request batch. Cannot shrink batch further. The actual batched request was [%{id: 0, params: ["0x8c5cb12e04cb3ed4fe481eca311832308029eaaba4c2a8b3f31563155356dd1b", %{:timeout => "5s", "tracer" => "callTracer"}], method: "debug_traceTransaction", jsonrpc: "2.0"}]. The actual response of the method was :timeout.
+2025-04-22T17:11:21.527 application=ethereum_jsonrpc fetcher=internal_transaction count=10 [error] 413 Request Entity Too Large returned from single request batch. Cannot shrink batch further. The actual batched request was [%{id: 0, params: ["0x168e743ef0617f61201aa4c0d1bbdfbc59910e62a4730d8a2b244db7408c5a52", %{:timeout => "5s", "tracer" => "callTracer"}], method: "debug_traceTransaction", jsonrpc: "2.0"}]. The actual response of the method was :timeout.
+2025-04-22T17:11:21.715 application=ethereum_jsonrpc fetcher=internal_transaction count=10 [error] 413 Request Entity Too Large returned from single request batch. Cannot shrink batch further. The actual batched request was [%{id: 0, params: ["0xbccb732c5c21802efc6a216ab92b08eeb61f37d1be01e1f5af2ae39115649692", %{:timeout => "5s", "tracer" => "callTracer"}], method: "debug_traceTransaction", jsonrpc: "2.0"}]. The actual response of the method was :timeout.
+2025-04-22T17:11:21.774 application=ethereum_jsonrpc fetcher=internal_transaction count=10 [error] 413 Request Entity Too Large returned from single request batch. Cannot shrink batch further. The actual batched request was [%{id: 0, params: ["0x66e38388a57bdf41508554e94ee32ec09718deea7b67636fb40d78c76225770b", %{:timeout => "5s", "tracer" => "callTracer"}], method: "debug_traceTransaction", jsonrpc: "2.0"}]. The actual response of the method was :timeout.
+2025-04-22T17:11:21.806 application=ethereum_jsonrpc fetcher=internal_transaction count=10 [error] 413 Request Entity Too Large returned from single request batch. Cannot shrink batch further. The actual batched request was [%{id: 0, params: ["0x1e938bbecf61c9d18e770ec1041b14f1323b0850f6e5d39b14353659677573c6", %{:timeout => "5s", "tracer" => "callTracer"}], method: "debug_traceTransaction", jsonrpc: "2.0"}]. The actual response of the method was :timeout.
+2025-04-22T17:13:22.647 application=ethereum_jsonrpc fetcher=internal_transaction count=10 [error] 413 Request Entity Too Large returned from single request batch. Cannot shrink batch further. The actual batched request was [%{id: 0, params: ["0x6912e3bd1d5a2f4dc285ea5af396689b5be2f0025d8fd6d452722d95ab2f1a3a", %{:timeout => "5s", "tracer" => "callTracer"}], method: "debug_traceTransaction", jsonrpc: "2.0"}]. The actual response of the method was :timeout.
+2025-04-22T17:13:27.612 application=ethereum_jsonrpc fetcher=internal_transaction count=10 [error] 413 Request Entity Too Large returned from single request batch. Cannot shrink batch further. The actual batched request was [%{id: 0, params: ["0x4ad94e102a0ea2f2989b1125759617c7abc00fc3849704a4b8ca4d8838c91382", %{:timeout => "5s", "tracer" => "callTracer"}], method: "debug_traceTransaction", jsonrpc: "2.0"}]. The actual response of the method was :timeout.
+2025-04-22T17:13:27.616 application=ethereum_jsonrpc fetcher=internal_transaction count=10 [error] 413 Request Entity Too Large returned from single request batch. Cannot shrink batch further. The actual batched request was [%{id: 0, params: ["0x5353b51fe3cf639fdcb391eeea1f2267c64f00e1fbdf5720a90cea2feb05b0c5", %{:timeout => "5s", "tracer" => "callTracer"}], method: "debug_traceTransaction", jsonrpc: "2.0"}]. The actual response of the method was :timeout.
+2025-04-22T17:13:46.110 application=ethereum_jsonrpc fetcher=coin_balance_catchup count=100 [error] Failed to decode Ethereum JSONRPC response:
+
+  request:
+
+    url: https://testrpc.tantin.com/
+
+    body: [{"id":54,"params":["0x64ce6228b368cebfcff454b600b77d605b70743b","0x409E"],"method":"eth_getBalance","jsonrpc":"2.0"},{"id":18,"params":["0x64ce6228b368cebfcff454b600b77d605b70743b","0x4902"],"method":"eth_getBalance","jsonrpc":"2.0"},{"id":96,"params":["0x64ce6228b368cebfcff454b600b77d605b70743b","0x8DD2"],"method":"eth_getBalance","jsonrpc":"2.0"},{"id":94,"params":["0x68e8ab5ec39a7dba612a3ab8c96922e88c807218","0x3B6E"],"method":"eth_getBalance","jsonrpc":"2.0"},{"id":84,"params":["0x64ce6228b368cebfcff454b600b77d605b70743b","0x3424"],"method":"eth_getBalance","jsonrpc":"2.0"},{"id":4,"params":["0x17aaa3c40c8ab03c7416f4bde2abc73a962792db","0x4908"],"method":"eth_getBalance","jsonrpc":"2.0"
+
+    headers: [{"Content-Type", "application/json"}]
+
+  response:
+
+    status code: 200
+
+    body: 
+
+2025-04-22T17:13:46.643 application=ethereum_jsonrpc fetcher=coin_balance_catchup count=100 [error] Failed to decode Ethereum JSONRPC response:
+
+  request:
+
+    url: https://testrpc.tantin.com/
+
+    body: [{"id":54,"params":["0x17aaa3c40c8ab03c7416f4bde2abc73a962792db","0x8DA9"],"method":"eth_getBalance","jsonrpc":"2.0"},{"id":18,"params":["0x68e8ab5ec39a7dba612a3ab8c96922e88c807218","0x8DD5"],"method":"eth_getBalance","jsonrpc":"2.0"},{"id":96,"params":["0x64ce6228b368cebfcff454b600b77d605b70743b","0x3012"],"method":"eth_getBalance","jsonrpc":"2.0"},{"id":94,"params":["0x68e8ab5ec39a7dba612a3ab8c96922e88c807218","0x8D80"],"method":"eth_getBalance","jsonrpc":"2.0"},{"id":84,"params":["0x17aaa3c40c8ab03c7416f4bde2abc73a962792db","0x8D78"],"method":"eth_getBalance","jsonrpc":"2.0"},{"id":4,"params":["0x17aaa3c40c8ab03c7416f4bde2abc73a962792db","0x8DDB"],"method":"eth_getBalance","jsonrpc":"2.0"
+
+    headers: [{"Content-Type", "application/json"}]
+
+  response:
+
+    status code: 200
+
+    body: 
+
+2025-04-22T17:14:34.728 application=ethereum_jsonrpc [warning] URL "https://testrpc.tantin.com/" is unavailable, and there is no other http url available, switching to fallback http url
+2025-04-22T17:14:36.918 application=ethereum_jsonrpc [info] URL "https://testrpc.tantin.com/" of http type is available now, switching back from fallback urls

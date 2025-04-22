@@ -313,3 +313,189 @@
 17:01:10.126 [info] Batch of empty blocks is sanitized
 17:01:20.127 [info] Start sanitizing of empty blocks. Batch size is 10
 17:01:20.566 [info] Batch of empty blocks is sanitized
+17:11:13.219 [info] Start sanitizing of empty blocks. Batch size is 10
+17:11:14.108 [info] Batch of empty blocks is sanitized
+17:11:24.113 [info] Start sanitizing of empty blocks. Batch size is 10
+17:11:25.455 [info] Batch of empty blocks is sanitized
+17:11:35.457 [info] Start sanitizing of empty blocks. Batch size is 10
+17:11:35.933 [info] Batch of empty blocks is sanitized
+17:11:45.934 [info] Start sanitizing of empty blocks. Batch size is 10
+17:11:46.416 [info] Batch of empty blocks is sanitized
+17:11:56.417 [info] Start sanitizing of empty blocks. Batch size is 10
+17:11:56.902 [info] Batch of empty blocks is sanitized
+17:12:06.904 [info] Start sanitizing of empty blocks. Batch size is 10
+17:12:11.351 [info] Batch of empty blocks is sanitized
+17:12:21.353 [info] Start sanitizing of empty blocks. Batch size is 10
+17:12:22.042 [info] Batch of empty blocks is sanitized
+17:12:32.044 [info] Start sanitizing of empty blocks. Batch size is 10
+17:12:32.598 [info] Batch of empty blocks is sanitized
+17:12:42.601 [info] Start sanitizing of empty blocks. Batch size is 10
+17:12:43.168 [info] Batch of empty blocks is sanitized
+17:12:53.170 [info] Start sanitizing of empty blocks. Batch size is 10
+17:12:55.590 [info] Batch of empty blocks is sanitized
+17:13:05.593 [info] Start sanitizing of empty blocks. Batch size is 10
+17:13:05.856 [info] Batch of empty blocks is sanitized
+17:13:15.858 [info] Start sanitizing of empty blocks. Batch size is 10
+17:15:28.252 [error] Failed to fetch blocks batch: :closed
+17:15:38.256 [info] Start sanitizing of empty blocks. Batch size is 10
+17:15:38.720 [info] Batch of empty blocks is sanitized
+17:15:48.721 [info] Start sanitizing of empty blocks. Batch size is 10
+17:15:49.201 [info] Batch of empty blocks is sanitized
+17:15:59.204 [info] Start sanitizing of empty blocks. Batch size is 10
+17:15:59.724 [info] Batch of empty blocks is sanitized
+17:16:09.729 [info] Start sanitizing of empty blocks. Batch size is 10
+17:16:10.310 [info] Batch of empty blocks is sanitized
+17:16:20.314 [info] Start sanitizing of empty blocks. Batch size is 10
+17:16:20.784 [info] Batch of empty blocks is sanitized
+17:16:30.784 [info] Start sanitizing of empty blocks. Batch size is 10
+17:16:31.265 [info] Batch of empty blocks is sanitized
+17:16:41.266 [info] Start sanitizing of empty blocks. Batch size is 10
+17:16:41.757 [info] Batch of empty blocks is sanitized
+17:16:51.759 [info] Start sanitizing of empty blocks. Batch size is 10
+17:16:52.242 [info] Batch of empty blocks is sanitized
+17:17:02.244 [info] Start sanitizing of empty blocks. Batch size is 10
+17:17:02.728 [info] Batch of empty blocks is sanitized
+17:17:12.731 [info] Start sanitizing of empty blocks. Batch size is 10
+17:17:13.213 [info] Batch of empty blocks is sanitized
+17:17:23.215 [info] Start sanitizing of empty blocks. Batch size is 10
+17:17:23.701 [info] Batch of empty blocks is sanitized
+17:17:33.707 [info] Start sanitizing of empty blocks. Batch size is 10
+17:17:34.187 [info] Batch of empty blocks is sanitized
+17:17:44.190 [info] Start sanitizing of empty blocks. Batch size is 10
+17:17:44.658 [info] Batch of empty blocks is sanitized
+17:17:54.660 [info] Start sanitizing of empty blocks. Batch size is 10
+17:17:55.116 [info] Batch of empty blocks is sanitized
+17:18:05.118 [info] Start sanitizing of empty blocks. Batch size is 10
+17:18:05.582 [info] Batch of empty blocks is sanitized
+17:18:15.584 [info] Start sanitizing of empty blocks. Batch size is 10
+17:18:16.517 [info] Batch of empty blocks is sanitized
+17:18:26.518 [info] Start sanitizing of empty blocks. Batch size is 10
+17:18:26.996 [info] Batch of empty blocks is sanitized
+17:18:36.998 [info] Start sanitizing of empty blocks. Batch size is 10
+17:18:37.503 [info] Batch of empty blocks is sanitized
+17:18:47.622 [info] Start sanitizing of empty blocks. Batch size is 10
+17:18:48.130 [info] Batch of empty blocks is sanitized
+17:18:58.132 [info] Start sanitizing of empty blocks. Batch size is 10
+17:18:58.701 [info] Batch of empty blocks is sanitized
+17:19:08.703 [info] Start sanitizing of empty blocks. Batch size is 10
+17:19:09.221 [info] Batch of empty blocks is sanitized
+17:19:19.223 [info] Start sanitizing of empty blocks. Batch size is 10
+17:19:19.687 [info] Batch of empty blocks is sanitized
+17:19:29.689 [info] Start sanitizing of empty blocks. Batch size is 10
+17:19:30.160 [info] Batch of empty blocks is sanitized
+17:19:40.161 [info] Start sanitizing of empty blocks. Batch size is 10
+17:19:40.659 [info] Batch of empty blocks is sanitized
+17:19:50.660 [info] Start sanitizing of empty blocks. Batch size is 10
+17:19:51.140 [info] Batch of empty blocks is sanitized
+17:20:01.147 [info] Start sanitizing of empty blocks. Batch size is 10
+17:20:01.627 [info] Batch of empty blocks is sanitized
+17:20:11.629 [info] Start sanitizing of empty blocks. Batch size is 10
+17:20:12.097 [info] Batch of empty blocks is sanitized
+17:20:22.099 [info] Start sanitizing of empty blocks. Batch size is 10
+17:20:22.552 [info] Batch of empty blocks is sanitized
+17:20:32.553 [info] Start sanitizing of empty blocks. Batch size is 10
+17:20:33.036 [info] Batch of empty blocks is sanitized
+17:20:43.038 [info] Start sanitizing of empty blocks. Batch size is 10
+17:20:43.528 [info] Batch of empty blocks is sanitized
+17:20:53.529 [info] Start sanitizing of empty blocks. Batch size is 10
+17:20:53.987 [info] Batch of empty blocks is sanitized
+17:21:03.989 [info] Start sanitizing of empty blocks. Batch size is 10
+17:21:04.493 [info] Batch of empty blocks is sanitized
+17:21:14.494 [info] Start sanitizing of empty blocks. Batch size is 10
+17:21:14.945 [info] Batch of empty blocks is sanitized
+17:21:24.946 [info] Start sanitizing of empty blocks. Batch size is 10
+17:21:25.424 [info] Batch of empty blocks is sanitized
+17:21:35.427 [info] Start sanitizing of empty blocks. Batch size is 10
+17:21:36.347 [info] Batch of empty blocks is sanitized
+17:21:46.350 [info] Start sanitizing of empty blocks. Batch size is 10
+17:21:46.763 [info] Batch of empty blocks is sanitized
+17:21:56.764 [info] Start sanitizing of empty blocks. Batch size is 10
+17:21:57.249 [info] Batch of empty blocks is sanitized
+17:22:07.251 [info] Start sanitizing of empty blocks. Batch size is 10
+17:22:07.710 [info] Batch of empty blocks is sanitized
+17:22:17.711 [info] Start sanitizing of empty blocks. Batch size is 10
+17:22:18.128 [info] Batch of empty blocks is sanitized
+17:22:28.129 [info] Start sanitizing of empty blocks. Batch size is 10
+17:22:28.594 [info] Batch of empty blocks is sanitized
+17:22:38.596 [info] Start sanitizing of empty blocks. Batch size is 10
+17:22:39.057 [info] Batch of empty blocks is sanitized
+17:22:49.061 [info] Start sanitizing of empty blocks. Batch size is 10
+17:22:49.526 [info] Batch of empty blocks is sanitized
+17:22:59.529 [info] Start sanitizing of empty blocks. Batch size is 10
+17:22:59.960 [info] Batch of empty blocks is sanitized
+17:23:09.962 [info] Start sanitizing of empty blocks. Batch size is 10
+17:23:10.441 [info] Batch of empty blocks is sanitized
+17:23:20.441 [info] Start sanitizing of empty blocks. Batch size is 10
+17:23:20.904 [info] Batch of empty blocks is sanitized
+17:23:30.906 [info] Start sanitizing of empty blocks. Batch size is 10
+17:23:31.363 [info] Batch of empty blocks is sanitized
+17:23:41.365 [info] Start sanitizing of empty blocks. Batch size is 10
+17:23:41.825 [info] Batch of empty blocks is sanitized
+17:23:51.826 [info] Start sanitizing of empty blocks. Batch size is 10
+17:23:52.289 [info] Batch of empty blocks is sanitized
+17:24:02.291 [info] Start sanitizing of empty blocks. Batch size is 10
+17:24:02.757 [info] Batch of empty blocks is sanitized
+17:24:12.758 [info] Start sanitizing of empty blocks. Batch size is 10
+17:24:13.213 [info] Batch of empty blocks is sanitized
+17:24:23.220 [info] Start sanitizing of empty blocks. Batch size is 10
+17:24:23.681 [info] Batch of empty blocks is sanitized
+17:24:33.682 [info] Start sanitizing of empty blocks. Batch size is 10
+17:24:34.085 [info] Batch of empty blocks is sanitized
+17:24:44.090 [info] Start sanitizing of empty blocks. Batch size is 10
+17:24:44.559 [info] Batch of empty blocks is sanitized
+17:24:54.561 [info] Start sanitizing of empty blocks. Batch size is 10
+17:24:55.035 [info] Batch of empty blocks is sanitized
+17:25:05.036 [info] Start sanitizing of empty blocks. Batch size is 10
+17:25:05.474 [info] Batch of empty blocks is sanitized
+17:25:15.476 [info] Start sanitizing of empty blocks. Batch size is 10
+17:25:15.945 [info] Batch of empty blocks is sanitized
+17:25:25.950 [info] Start sanitizing of empty blocks. Batch size is 10
+17:25:26.414 [info] Batch of empty blocks is sanitized
+17:25:36.415 [info] Start sanitizing of empty blocks. Batch size is 10
+17:25:36.884 [info] Batch of empty blocks is sanitized
+17:25:46.886 [info] Start sanitizing of empty blocks. Batch size is 10
+17:25:47.350 [info] Batch of empty blocks is sanitized
+17:25:57.352 [info] Start sanitizing of empty blocks. Batch size is 10
+17:25:57.780 [info] Batch of empty blocks is sanitized
+17:26:07.782 [info] Start sanitizing of empty blocks. Batch size is 10
+17:26:08.221 [info] Batch of empty blocks is sanitized
+17:26:18.222 [info] Start sanitizing of empty blocks. Batch size is 10
+17:26:18.664 [info] Batch of empty blocks is sanitized
+17:26:28.665 [info] Start sanitizing of empty blocks. Batch size is 10
+17:26:29.113 [info] Batch of empty blocks is sanitized
+17:26:39.114 [info] Start sanitizing of empty blocks. Batch size is 10
+17:26:39.514 [info] Batch of empty blocks is sanitized
+17:26:49.518 [info] Start sanitizing of empty blocks. Batch size is 10
+17:26:50.710 [info] Batch of empty blocks is sanitized
+17:27:00.711 [info] Start sanitizing of empty blocks. Batch size is 10
+17:27:01.179 [info] Batch of empty blocks is sanitized
+17:27:11.180 [info] Start sanitizing of empty blocks. Batch size is 10
+17:27:11.583 [info] Batch of empty blocks is sanitized
+17:27:21.584 [info] Start sanitizing of empty blocks. Batch size is 10
+17:27:22.147 [info] Batch of empty blocks is sanitized
+17:27:32.149 [info] Start sanitizing of empty blocks. Batch size is 10
+17:27:32.590 [info] Batch of empty blocks is sanitized
+17:27:42.591 [info] Start sanitizing of empty blocks. Batch size is 10
+17:27:43.072 [info] Batch of empty blocks is sanitized
+17:27:53.078 [info] Start sanitizing of empty blocks. Batch size is 10
+17:27:53.546 [info] Batch of empty blocks is sanitized
+17:28:03.551 [info] Start sanitizing of empty blocks. Batch size is 10
+17:28:04.011 [info] Batch of empty blocks is sanitized
+17:28:14.013 [info] Start sanitizing of empty blocks. Batch size is 10
+17:28:14.452 [info] Batch of empty blocks is sanitized
+17:28:24.455 [info] Start sanitizing of empty blocks. Batch size is 10
+17:28:24.892 [info] Batch of empty blocks is sanitized
+17:28:34.894 [info] Start sanitizing of empty blocks. Batch size is 10
+17:28:35.351 [info] Batch of empty blocks is sanitized
+17:28:45.354 [info] Start sanitizing of empty blocks. Batch size is 10
+17:28:45.830 [info] Batch of empty blocks is sanitized
+17:28:55.831 [info] Start sanitizing of empty blocks. Batch size is 10
+17:28:56.278 [info] Batch of empty blocks is sanitized
+17:29:06.280 [info] Start sanitizing of empty blocks. Batch size is 10
+17:29:06.711 [info] Batch of empty blocks is sanitized
+17:29:16.712 [info] Start sanitizing of empty blocks. Batch size is 10
+17:29:17.243 [info] Batch of empty blocks is sanitized
+17:29:27.244 [info] Start sanitizing of empty blocks. Batch size is 10
+17:29:27.726 [info] Batch of empty blocks is sanitized
+17:29:37.727 [info] Start sanitizing of empty blocks. Batch size is 10
+17:29:38.206 [info] Batch of empty blocks is sanitized

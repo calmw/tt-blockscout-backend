@@ -19,3 +19,6 @@
 2025-04-22T16:45:51.552 application=api [debug] Current global API rate limit 50 reqs/sec
 2025-04-22T16:45:51.552 application=api [debug] Current API rate limit by key 10 reqs/sec
 2025-04-22T16:45:51.552 application=api [debug] Current API rate limit by IP 3000 reqs/sec
+2025-04-22T17:11:03.193 application=api [debug] Current global API rate limit 50 reqs/sec
+2025-04-22T17:11:03.193 application=api [debug] Current API rate limit by key 10 reqs/sec
+2025-04-22T17:11:03.193 application=api [debug] Current API rate limit by IP 3000 reqs/sec
