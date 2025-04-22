@@ -567,3 +567,4 @@
 2025-04-22T17:11:18.183 application=explorer [info] Fetching precompiled config path: nil.
 2025-04-22T17:11:18.183 application=explorer [warning] Genesis data is not fetched. Neither chain spec path or precompiles config path are set.
 2025-04-22T17:21:14.874 application=explorer [warning] Failed to get  exchange rates with reason '404: Incorrect path. Please check https://docs.coingecko.com/'.
+2025-04-22T17:31:21.091 application=explorer [warning] Failed to get  exchange rates with reason '404: Incorrect path. Please check https://docs.coingecko.com/'.
