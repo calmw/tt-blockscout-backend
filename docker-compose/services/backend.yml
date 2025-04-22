@@ -15,3 +15,5 @@ services:
     volumes:
       - ./logs/:/app/logs/
       - ./dets/:/app/dets/
+    logging:
+      driver: json-file
