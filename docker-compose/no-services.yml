@@ -38,8 +38,8 @@ services:
     links:
       - db:database
     environment:
-        ETHEREUM_JSONRPC_HTTP_URL: https://rpc.tantin.com/
-        ETHEREUM_JSONRPC_TRACE_URL: https://rpc.tantin.com/
+        ETHEREUM_JSONRPC_HTTP_URL: https://eth.rpc.blxrbdn.com/
+        ETHEREUM_JSONRPC_TRACE_URL: https://eth.rpc.blxrbdn.com/
         ETHEREUM_JSONRPC_WS_URL: ws://host.docker.internal:8545/
         CHAIN_ID: '1337'
 
