@@ -98,16 +98,8 @@ defmodule BlockScoutWeb.API.V2.ScrollView do
         {batch.bundle.finalize_block_number, batch.bundle.finalize_transaction_hash, batch.bundle.finalize_timestamp}
       end
 
-    {start_block_number, end_block_number, transactions_count} =
-      if is_nil(batch.l2_block_range) do
-        {nil, nil, nil}
-      else
-        {
-          batch.l2_block_range.from,
-          batch.l2_block_range.to,
-          Transaction.transaction_count_for_block_range(batch.l2_block_range.from..batch.l2_block_range.to)
-        }
-      end
+    transaction_count =
+      Transaction.transaction_count_for_block_range(batch.l2_block_range.from..batch.l2_block_range.to)
 
     %{
       "number" => batch.number,
@@ -124,15 +116,15 @@ defmodule BlockScoutWeb.API.V2.ScrollView do
       "data_availability" => %{
         "batch_data_container" => batch.container
       },
-      "start_block_number" => start_block_number,
-      "end_block_number" => end_block_number,
+      "start_block_number" => batch.l2_block_range.from,
+      "end_block_number" => batch.l2_block_range.to,
       # todo: It should be removed in favour `start_block_number` property with the next release after 8.0.0
-      "start_block" => start_block_number,
+      "start_block" => batch.l2_block_range.from,
       # todo: It should be removed in favour `end_block_number` property with the next release after 8.0.0
-      "end_block" => end_block_number,
-      "transactions_count" => transactions_count,
+      "end_block" => batch.l2_block_range.to,
+      "transactions_count" => transaction_count,
       # todo: It should be removed in favour `transactions_count` property with the next release after 8.0.0
-      "transaction_count" => transactions_count
+      "transaction_count" => transaction_count
     }
   end
 

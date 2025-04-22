@@ -35,7 +35,7 @@ RUN cd apps/block_scout_web/assets/ && \
     cd /app/apps/explorer/ && \
     npm install
 
-RUN cd apps/block_scout_web && mix phx.digest
+RUN mix phx.digest
 
 ##############################################################
 FROM builder-ui AS builder

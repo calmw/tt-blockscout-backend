@@ -325,7 +325,6 @@
         "invalidsortoption",
         "invalidstart",
         "inversed",
-        "iolist",
         "ipfs",
         "ipos",
         "itxs",
@@ -739,8 +738,7 @@
         "zkbob",
         "zkevm",
         "zksolc",
-        "zksync",
-        "zstd"
+        "zksync"
     ],
     "enableFiletypes": [
         "dotenv",

@@ -1,20 +1,5 @@
 # Changelog
 
-## 8.0.1
-
-### 🐛 Bug Fixes
-
-- Fix CSV export "to" range to include the whole day in all cases ([#12286](https://github.com/blockscout/blockscout/pull/12286))
-- Return compatibility with previous version of health endpoint([#12280](https://github.com/blockscout/blockscout/pull/12280))
-- Unbind import from compile-time chain_type ([#12277](https://github.com/blockscout/blockscout/pull/12277))
-- Read `CHAIN_TYPE` and `MUD_INDEXER_ENABLED` envs in runtime config ([#12270](https://github.com/blockscout/blockscout/issues/12270))
-
-### ⚙️ Miscellaneous Tasks
-
-- Decrease PBO to PTO migration batch size ([#12279](https://github.com/blockscout/blockscout/pull/12279))
-- Decrease PendingOperationsHelper blocks_batch_size ([#12276](https://github.com/blockscout/blockscout/pull/12276))
-- Update docker compose to use ghcr.io images ([#12177](https://github.com/blockscout/blockscout/issues/12177))
-
 ## 8.0.0
 
 ### 🚀 Features
@@ -123,7 +108,7 @@
 
 | Variable              | Description                                                                                                                                                      | Parameters                                                                                      |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `HEALTH_MONITOR_CHECK_INTERVAL`                                 | Interval between health stats collection. [Time format](backend-env-variables.md#time-format). Implemented in [#11888](https://github.com/blockscout/blockscout/pull/11888/)                                                                                                                                                                                                                                                                                                     | <p>Version: v8.0.0+<br>Default: <code>1m</code><br>Applications: API, Indexer</p>                                                                                          |
+| `HEALTH_MONITOR_CHECK_INTERVAL`                                 | Interval between health stats collection. [Time format](backend-env-variables.md#time-format). Implemented in [#11888](https://github.com/blockscout/blockscout/pull/11888/)                                                                                                                                                                                                                                                                                                     | <p>Version: v8.0.0+<br>Default: <code>5m</code><br>Applications: API, Indexer</p>                                                                                          |
 | `HEALTH_MONITOR_BLOCKS_PERIOD`                                 | New blocks indexed max delay in /health API endpoint. [Time format](backend-env-variables.md#time-format). Implemented in [#11888](https://github.com/blockscout/blockscout/pull/11888/)                                                                                                                                                                                                                                                                                                     | <p>Version: v8.0.0+<br>Default: <code>5m</code><br>Applications: API, Indexer</p>                                                                                          |
 | `HEALTH_MONITOR_BATCHES_PERIOD`                                 | New batches indexed max delay in /health API endpoint. [Time format](backend-env-variables.md#time-format). Implemented in [#11888](https://github.com/blockscout/blockscout/pull/11888/)                                                                                                                                                                                                                                                                                                     | <p>Version: v8.0.0+<br>Default: <code>4h</code><br>Applications: API, Indexer</p>                                                                                          |
 | `INDEXER_TOKEN_INSTANCE_CIDR_BLACKLIST`                       | List of IP addresses in CIDR format to block when fetching token instance metadata. Example: `"0.0.0.0/32,192.168.0.0/16"`. Implemented in [#12102](https://github.com/blockscout/blockscout/pull/12102).                                                                                                                                                                                                                                                                                                                        | <p>Version: v8.0.0+<br>Default: (empty)<br>Applications: Indexer</p>                                                  |
