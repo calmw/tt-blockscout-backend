@@ -5,7 +5,7 @@ services:
 #    image: blockscout/${DOCKER_REPO:-blockscout}:${DOCKER_TAG:-latest}
 #    image: blockscout/blockscout:7.0.2
 #    image: blockscout/blockscout:5.2.3.commit.f89f344e
-    image: blockscout/blockscout:6.10.1.commit.abdedaf7
+    image: blockscout/blockscout:6.8.1.commit.1b1d3402
     pull_policy: always
     restart: always
     stop_grace_period: 5m
