@@ -2,8 +2,8 @@ version: '3.9'
 
 services:
   frontend:
-    image: ghcr.io/blockscout/frontend:${FRONTEND_DOCKER_TAG:-latest}
-#    image: harbor.devops.tantin.com/web/explorer-web:20250423-1902
+#    image: ghcr.io/blockscout/frontend:${FRONTEND_DOCKER_TAG:-latest}
+    image: harbor.devops.tantin.com/web/explorer-web:20250423-1902
     pull_policy: always
     platform: linux/amd64
     restart: always
