@@ -9,8 +9,8 @@ config:
 
 ```elixir
 config :ethereum_jsonrpc,
-  url: "http://localhost:8545",
-  trace_url: "http://localhost:8545",
+  url: "http://13.214.174.173:8545",
+  trace_url: "http://13.214.174.173:8545",
   http: [recv_timeout: 60_000, timeout: 60_000, hackney: [pool: :ethereum_jsonrpc]]
 ```
 
@@ -44,7 +44,7 @@ mix test --exclude no_nethermind
 
 | Protocol  | URL                                |
 |:----------|:-----------------------------------|
-| HTTP      | `http://localhost:8545`  |
+| HTTP      | `http://13.214.174.173:8545`  |
 | WebSocket | `ws://localhost:8546`    |
 
 ### Geth

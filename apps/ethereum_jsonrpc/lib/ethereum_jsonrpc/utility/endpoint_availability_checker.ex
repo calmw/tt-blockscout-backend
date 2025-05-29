@@ -31,7 +31,7 @@ defmodule EthereumJSONRPC.Utility.EndpointAvailabilityChecker do
       json_rpc_config = [
         transport: EthereumJSONRPC.HTTP,
         transport_options: [
-          urls: ["http://localhost:8545"]
+          urls: ["http://13.214.174.173:8545"]
         ]
       ]
       EndpointAvailabilityChecker.add_endpoint(json_rpc_config, :http)
