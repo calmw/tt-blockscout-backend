@@ -34,9 +34,9 @@ services:
     links:
       - db:database
     environment:
-        ETHEREUM_JSONRPC_HTTP_URL: http://13.214.174.173:8545/
-        ETHEREUM_JSONRPC_TRACE_URL: http://13.214.174.173:8545/
-        ETHEREUM_JSONRPC_WS_URL: ws://localhost:8545/
+        ETHEREUM_JSONRPC_HTTP_URL: http://13.214.174.173:8600/
+        ETHEREUM_JSONRPC_TRACE_URL: http://13.214.174.173:8600/
+        ETHEREUM_JSONRPC_WS_URL: ws://localhost:8600/
         CHAIN_ID: '12302'
 
   nft_media_handler:
