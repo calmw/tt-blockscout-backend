@@ -33,7 +33,7 @@ services:
         ETHEREUM_JSONRPC_WS_URL: ws://localhost:8600/
         INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: 'true'
         INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: 'true'
-        CHAIN_ID: '12302'
+        CHAIN_ID: '12301'
 
   visualizer:
     extends:
@@ -52,7 +52,7 @@ services:
       file: ./services/frontend.yml
       service: frontend
     environment:
-      NEXT_PUBLIC_NETWORK_ID: '12302'
+      NEXT_PUBLIC_NETWORK_ID: '12301'
       NEXT_PUBLIC_NETWORK_RPC_URL: http://10.234.152.94:8545/
 
   stats-db-init:
