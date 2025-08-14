@@ -4,7 +4,7 @@ services:
   frontend:
 #    image: ghcr.io/blockscout/frontend:${FRONTEND_DOCKER_TAG:-latest}
 #    image: harbor.devops.tantin.com/web/explorer-web:20250423-1902
-    image: harbor.devops.tantin.com/web/explorer-web:20250805-3
+    image: harbor.devops.tantin.com/web/explorer-web:20250815
     pull_policy: always
     platform: linux/amd64
     restart: always
