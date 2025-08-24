@@ -2,7 +2,7 @@ defmodule BlockScoutWeb.AddressWriteContractControllerTest do
   use BlockScoutWeb.ConnCase, async: true
   use ExUnit.Case, async: false
 
-  alias Explorer.Market.Token
+  alias Explorer.ExchangeRates.Token
   alias Explorer.Chain.Address
   alias Explorer.TestHelper
 
@@ -14,6 +14,17 @@ defmodule BlockScoutWeb.AddressWriteContractControllerTest do
 
   describe "GET index/3" do
     setup :set_mox_global
+
+    setup do
+      configuration = Application.get_env(:explorer, :checksum_function)
+      Application.put_env(:explorer, :checksum_function, :eth)
+
+      :ok
+
+      on_exit(fn ->
+        Application.put_env(:explorer, :checksum_function, configuration)
+      end)
+    end
 
     test "with invalid address hash", %{conn: conn} do
       conn = get(conn, address_write_contract_path(BlockScoutWeb.Endpoint, :index, "invalid_address"))
@@ -45,7 +56,7 @@ defmodule BlockScoutWeb.AddressWriteContractControllerTest do
 
       insert(:smart_contract, address_hash: contract_address.hash, contract_code_md5: "123")
 
-      TestHelper.get_all_proxies_implementation_zero_addresses()
+      TestHelper.get_eip1967_implementation_zero_addresses()
 
       conn =
         get(conn, address_write_contract_path(BlockScoutWeb.Endpoint, :index, Address.checksum(contract_address.hash)))

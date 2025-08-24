@@ -141,6 +141,13 @@ defmodule BlockScoutWeb.Routers.WebRouter do
       )
 
       resources(
+        "/decompiled-contracts",
+        AddressDecompiledContractController,
+        only: [:index],
+        as: :decompiled_contract
+      )
+
+      resources(
         "/logs",
         AddressLogsController,
         only: [:index],

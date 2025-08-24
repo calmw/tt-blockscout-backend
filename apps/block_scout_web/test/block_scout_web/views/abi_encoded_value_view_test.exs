@@ -13,6 +13,8 @@ defmodule BlockScoutWeb.ABIEncodedValueViewTest do
       other ->
         other
     end
+    |> Phoenix.HTML.Safe.to_iodata()
+    |> IO.iodata_to_binary()
   end
 
   defp copy_text(type, value) do

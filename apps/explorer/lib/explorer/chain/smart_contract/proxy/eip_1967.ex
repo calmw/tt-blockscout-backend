@@ -2,18 +2,15 @@ defmodule Explorer.Chain.SmartContract.Proxy.EIP1967 do
   @moduledoc """
   Module for fetching proxy implementation from https://eips.ethereum.org/EIPS/eip-1967 (Proxy Storage Slots)
   """
-  alias Explorer.Chain
   alias Explorer.Chain.Hash
   alias Explorer.Chain.SmartContract.Proxy
-  alias Explorer.SmartContract.Helper, as: SmartContractHelper
+  alias Explorer.Chain.SmartContract.Proxy.Basic
 
   # supported signatures:
   # 5c60da1b = keccak256(implementation())
   @implementation_signature "5c60da1b"
 
-  # obtained as bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1)
   @storage_slot_logic_contract_address "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
-  # obtained as bytes32(uint256(keccak256('eip1967.proxy.beacon')) - 1)
   @storage_slot_beacon_contract_address "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50"
 
   # to be precise, it is not the part of the EIP-1967 standard, but still uses the same pattern
@@ -32,20 +29,10 @@ defmodule Explorer.Chain.SmartContract.Proxy.EIP1967 do
   ]
 
   @doc """
-  Get implementation address hash string following EIP-1967. It returns the value as array of the strings.
+  Get implementation address hash string following EIP-1967
   """
-  @spec get_implementation_address_hash_strings(Hash.Address.t(), [Chain.api?()]) :: [binary()] | :error
-  def get_implementation_address_hash_strings(proxy_address_hash, _options \\ []) do
-    case get_implementation_address_hash_string(proxy_address_hash) do
-      nil -> []
-      :error -> :error
-      implementation_address_hash_string -> [implementation_address_hash_string]
-    end
-  end
-
-  # Get implementation address hash string following EIP-1967
-  @spec get_implementation_address_hash_string(Hash.Address.t()) :: binary() | nil | :error
-  defp get_implementation_address_hash_string(proxy_address_hash) do
+  @spec get_implementation_address_hash_string(Hash.Address.t()) :: nil | :error | binary
+  def get_implementation_address_hash_string(proxy_address_hash) do
     json_rpc_named_arguments = Application.get_env(:explorer, :json_rpc_named_arguments)
 
     implementation_address_hash_string_from_logic_storage_slot =
@@ -97,12 +84,12 @@ defmodule Explorer.Chain.SmartContract.Proxy.EIP1967 do
 
       _ ->
         case @implementation_signature
-             |> SmartContractHelper.get_binary_string_from_contract_getter(
+             |> Basic.get_implementation_address_hash_string(
                eip1967_beacon_address_hash_string,
                @implementation_method_abi
              ) do
-          <<implementation_address_hash_string::binary-size(42)>> ->
-            implementation_address_hash_string
+          <<implementation_address::binary-size(42)>> ->
+            implementation_address
 
           _ ->
             nil

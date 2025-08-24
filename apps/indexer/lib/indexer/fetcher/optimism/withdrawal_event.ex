@@ -10,19 +10,16 @@ defmodule Indexer.Fetcher.Optimism.WithdrawalEvent do
 
   import Ecto.Query
 
-  import EthereumJSONRPC, only: [id_to_params: 1, json_rpc: 2, quantity_to_integer: 1]
+  import EthereumJSONRPC, only: [quantity_to_integer: 1]
 
   alias EthereumJSONRPC.Block.ByNumber
   alias EthereumJSONRPC.Blocks
   alias Explorer.{Chain, Repo}
   alias Explorer.Chain.Optimism.WithdrawalEvent
-  alias Explorer.Chain.RollupReorgMonitorQueue
-  alias Indexer.Fetcher.Optimism
+  alias Indexer.Fetcher.{Optimism, RollupL1ReorgMonitor}
   alias Indexer.Helper
 
   @fetcher_name :optimism_withdrawal_events
-  @counter_type "optimism_withdrawal_events_fetcher_last_l1_block_hash"
-  @empty_hash "0x0000000000000000000000000000000000000000000000000000000000000000"
 
   # 32-byte signature of the event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to)
   @withdrawal_proven_event "0x67a6208cfcc0801d50f6cbe764733f4fddf66ac0b04442061a8a8c0cb6b63f62"
@@ -71,40 +68,36 @@ defmodule Indexer.Fetcher.Optimism.WithdrawalEvent do
           block_check_interval: block_check_interval,
           start_block: start_block,
           end_block: end_block,
-          json_rpc_named_arguments: json_rpc_named_arguments,
-          eth_get_logs_range_size: eth_get_logs_range_size
+          json_rpc_named_arguments: json_rpc_named_arguments
         } = state
       ) do
     # credo:disable-for-next-line
     time_before = Timex.now()
 
-    chunks_number = ceil((end_block - start_block + 1) / eth_get_logs_range_size)
+    chunks_number = ceil((end_block - start_block + 1) / Optimism.get_logs_range_size())
     chunk_range = Range.new(0, max(chunks_number - 1, 0), 1)
 
     last_written_block =
       chunk_range
       |> Enum.reduce_while(start_block - 1, fn current_chunk, _ ->
-        chunk_start = start_block + eth_get_logs_range_size * current_chunk
-        chunk_end = min(chunk_start + eth_get_logs_range_size - 1, end_block)
+        chunk_start = start_block + Optimism.get_logs_range_size() * current_chunk
+        chunk_end = min(chunk_start + Optimism.get_logs_range_size() - 1, end_block)
 
         if chunk_end >= chunk_start do
           Helper.log_blocks_chunk_handling(chunk_start, chunk_end, start_block, end_block, nil, :L1)
 
           {:ok, result} =
-            Helper.get_logs(
+            Optimism.get_logs(
               chunk_start,
               chunk_end,
               optimism_portal,
               [
-                [
-                  @withdrawal_proven_event,
-                  @withdrawal_proven_event_blast,
-                  @withdrawal_finalized_event,
-                  @withdrawal_finalized_event_blast
-                ]
+                @withdrawal_proven_event,
+                @withdrawal_proven_event_blast,
+                @withdrawal_finalized_event,
+                @withdrawal_finalized_event_blast
               ],
               json_rpc_named_arguments,
-              0,
               Helper.infinite_retries_number()
             )
 
@@ -126,28 +119,23 @@ defmodule Indexer.Fetcher.Optimism.WithdrawalEvent do
           )
         end
 
-        reorg_block = RollupReorgMonitorQueue.reorg_block_pop(__MODULE__)
+        reorg_block = RollupL1ReorgMonitor.reorg_block_pop(__MODULE__)
 
         if !is_nil(reorg_block) && reorg_block > 0 do
           {deleted_count, _} = Repo.delete_all(from(we in WithdrawalEvent, where: we.l1_block_number >= ^reorg_block))
 
           log_deleted_rows_count(reorg_block, deleted_count)
 
-          Optimism.set_last_block_hash(@empty_hash, @counter_type)
-
           {:halt, if(reorg_block <= chunk_end, do: reorg_block - 1, else: chunk_end)}
         else
-          # credo:disable-for-next-line Credo.Check.Refactor.Nesting
-          if chunk_end >= chunk_start do
-            Optimism.set_last_block_hash_by_number(chunk_end, @counter_type, json_rpc_named_arguments)
-          end
-
           {:cont, chunk_end}
         end
       end)
 
     new_start_block = last_written_block + 1
-    new_end_block = Helper.fetch_latest_l1_block_number(json_rpc_named_arguments)
+
+    {:ok, new_end_block} =
+      Optimism.get_block_number_by_tag("latest", json_rpc_named_arguments, Helper.infinite_retries_number())
 
     delay =
       if new_end_block == last_written_block do
@@ -256,53 +244,17 @@ defmodule Indexer.Fetcher.Optimism.WithdrawalEvent do
     |> Map.values()
   end
 
-  @doc """
-    Determines the last saved L1 block number, the last saved transaction hash, and the transaction info for L1 Withdrawal events.
+  def get_last_l1_item do
+    query =
+      from(we in WithdrawalEvent,
+        select: {we.l1_block_number, we.l1_transaction_hash},
+        order_by: [desc: we.l1_timestamp],
+        limit: 1
+      )
 
-    Used by the `Indexer.Fetcher.Optimism` module to start fetching from a correct block number
-    after reorg has occurred.
-
-    ## Parameters
-    - `json_rpc_named_arguments`: Configuration parameters for the JSON RPC connection.
-                                  Used to get transaction info by its hash from the RPC node.
-
-    ## Returns
-    - A tuple `{last_block_number, last_transaction_hash, last_transaction}` where
-      `last_block_number` is the last block number found in the corresponding table (0 if not found),
-      `last_transaction_hash` is the last transaction hash found in the corresponding table (nil if not found),
-      `last_transaction` is the transaction info got from the RPC (nil if not found).
-    - A tuple `{:error, message}` in case the `eth_getTransactionByHash` RPC request failed.
-  """
-  @spec get_last_l1_item(EthereumJSONRPC.json_rpc_named_arguments()) ::
-          {non_neg_integer(), binary() | nil, map() | nil} | {:error, any()}
-  def get_last_l1_item(json_rpc_named_arguments) do
-    Optimism.get_last_item(
-      :L1,
-      &WithdrawalEvent.last_event_l1_block_number_query/0,
-      &WithdrawalEvent.remove_events_query/1,
-      json_rpc_named_arguments,
-      @counter_type
-    )
-  end
-
-  @doc """
-    Returns L1 RPC URL for this module.
-  """
-  @spec l1_rpc_url() :: binary() | nil
-  def l1_rpc_url do
-    Optimism.l1_rpc_url()
-  end
-
-  @doc """
-    Determines if `Indexer.Fetcher.RollupL1ReorgMonitor` module must be up
-    before this fetcher starts.
-
-    ## Returns
-    - `true` if the reorg monitor must be active, `false` otherwise.
-  """
-  @spec requires_l1_reorg_monitor?() :: boolean()
-  def requires_l1_reorg_monitor? do
-    Optimism.requires_l1_reorg_monitor?()
+    query
+    |> Repo.one()
+    |> Kernel.||({0, nil})
   end
 
   defp get_blocks_by_events(events, json_rpc_named_arguments, retries) do
@@ -312,12 +264,13 @@ defmodule Indexer.Fetcher.Optimism.WithdrawalEvent do
         Map.put(acc, event["blockNumber"], 0)
       end)
       |> Stream.map(fn {block_number, _} -> %{number: block_number} end)
-      |> id_to_params()
+      |> Stream.with_index()
+      |> Enum.into(%{}, fn {params, id} -> {id, params} end)
       |> Blocks.requests(&ByNumber.request(&1, true, false))
 
     error_message = &"Cannot fetch blocks with batch request. Error: #{inspect(&1)}. Request: #{inspect(request)}"
 
-    case Helper.repeated_call(&json_rpc/2, [request, json_rpc_named_arguments], error_message, retries) do
+    case Optimism.repeated_request(request, error_message, json_rpc_named_arguments, retries) do
       {:ok, results} -> Enum.map(results, fn %{result: result} -> result end)
       {:error, _} -> []
     end

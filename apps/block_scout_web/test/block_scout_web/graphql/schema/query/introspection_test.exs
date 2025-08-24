@@ -112,12 +112,7 @@ defmodule BlockScoutWeb.Schema.Query.IntrospectionTest do
     }
     """
 
-    params = %{
-      "operationName" => "IntrospectionQuery",
-      "query" => introspection_query
-    }
-
-    conn = get(conn, "/api/v1/graphql", params)
+    conn = get(conn, "/api/v1/graphql", query: introspection_query)
     response = json_response(conn, 200)
 
     assert %{"data" => %{"__schema" => %{"directives" => _}}} = response

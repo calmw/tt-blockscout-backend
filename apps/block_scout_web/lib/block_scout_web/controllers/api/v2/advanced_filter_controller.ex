@@ -1,15 +1,13 @@
 defmodule BlockScoutWeb.API.V2.AdvancedFilterController do
   use BlockScoutWeb, :controller
 
-  import BlockScoutWeb.Chain, only: [split_list_by_page: 1, next_page_params: 4, fetch_scam_token_toggle: 2]
+  import BlockScoutWeb.Chain, only: [split_list_by_page: 1, next_page_params: 4]
   import Explorer.PagingOptions, only: [default_paging_options: 0]
 
-  alias BlockScoutWeb.CaptchaHelper
-  alias BlockScoutWeb.API.V2.{AdvancedFilterView, CsvExportController}
+  alias BlockScoutWeb.API.V2.{AdvancedFilterView, CSVExportController}
   alias Explorer.{Chain, PagingOptions}
   alias Explorer.Chain.{AdvancedFilter, ContractMethod, Data, Token, Transaction}
-  alias Explorer.Chain.CsvExport.Helper, as: CsvHelper
-  alias Explorer.Helper, as: ExplorerHelper
+  alias Explorer.Chain.CSVExport.Helper, as: CSVHelper
   alias Plug.Conn
 
   action_fallback(BlockScoutWeb.API.V2.FallbackController)
@@ -53,12 +51,7 @@ defmodule BlockScoutWeb.API.V2.AdvancedFilterController do
   """
   @spec list(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def list(conn, params) do
-    full_options =
-      params
-      |> extract_filters()
-      |> Keyword.merge(paging_options(params))
-      |> Keyword.merge(@api_true)
-      |> fetch_scam_token_toggle(conn)
+    full_options = params |> extract_filters() |> Keyword.merge(paging_options(params)) |> Keyword.merge(@api_true)
 
     advanced_filters_plus_one = AdvancedFilter.list(full_options)
 
@@ -88,21 +81,23 @@ defmodule BlockScoutWeb.API.V2.AdvancedFilterController do
   """
   @spec list_csv(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def list_csv(conn, params) do
-    with {:recaptcha, true} <- {:recaptcha, CaptchaHelper.recaptcha_passed?(params)} do
+    with {:recaptcha, true} <-
+           {:recaptcha,
+            Application.get_env(:block_scout_web, :recaptcha)[:is_disabled] ||
+              CSVHelper.captcha_helper().recaptcha_passed?(params["recaptcha_response"])} do
       full_options =
         params
         |> extract_filters()
         |> Keyword.merge(paging_options(params))
-        |> Keyword.update(:paging_options, %PagingOptions{page_size: CsvHelper.limit()}, fn paging_options ->
-          %PagingOptions{paging_options | page_size: CsvHelper.limit()}
+        |> Keyword.update(:paging_options, %PagingOptions{page_size: CSVHelper.limit()}, fn paging_options ->
+          %PagingOptions{paging_options | page_size: CSVHelper.limit()}
         end)
-        |> Keyword.put(:timeout, :timer.minutes(5))
 
       full_options
       |> AdvancedFilter.list()
       |> AdvancedFilterView.to_csv_format()
-      |> CsvHelper.dump_to_stream()
-      |> Enum.reduce_while(CsvExportController.put_resp_params(conn), fn chunk, conn ->
+      |> CSVHelper.dump_to_stream()
+      |> Enum.reduce_while(CSVExportController.put_resp_params(conn), fn chunk, conn ->
         case Conn.chunk(conn, chunk) do
           {:ok, conn} ->
             {:cont, conn}
@@ -137,12 +132,8 @@ defmodule BlockScoutWeb.API.V2.AdvancedFilterController do
               ContractMethod.find_contract_method_by_name(query, @api_true)
           end
 
-        case mb_contract_method do
-          %ContractMethod{abi: %{"name" => name}, identifier: identifier} ->
-            render(conn, :methods, methods: [%{method_id: ExplorerHelper.add_0x_prefix(identifier), name: name}])
-
-          _ ->
-            render(conn, :methods, methods: [])
+        with {:method, %ContractMethod{abi: %{"name" => name}, identifier: identifier}} <- {:method, mb_contract_method} do
+          render(conn, :methods, methods: [%{method_id: "0x" <> Base.encode16(identifier, case: :lower), name: name}])
         end
     end
   end
@@ -175,7 +166,7 @@ defmodule BlockScoutWeb.API.V2.AdvancedFilterController do
     |> Enum.reduce(%{}, fn contract_method, acc ->
       case contract_method do
         %ContractMethod{abi: %{"name" => name}, identifier: identifier} when is_binary(name) ->
-          Map.put(acc, ExplorerHelper.add_0x_prefix(identifier), name)
+          Map.put(acc, "0x" <> Base.encode16(identifier, case: :lower), name)
 
         _ ->
           acc
@@ -352,7 +343,6 @@ defmodule BlockScoutWeb.API.V2.AdvancedFilterController do
   defp paging_options(_), do: [paging_options: default_paging_options()]
 
   defp parse_nullable_integer_paging_parameter(""), do: {:ok, nil}
-  defp parse_nullable_integer_paging_parameter("null"), do: {:ok, nil}
 
   defp parse_nullable_integer_paging_parameter(string) when is_binary(string) do
     case Integer.parse(string) do

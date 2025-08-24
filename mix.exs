@@ -7,11 +7,11 @@ defmodule BlockScout.Mixfile do
     [
       # app: :block_scout,
       # aliases: aliases(config_env()),
-      version: "8.0.0",
+      version: "6.8.1",
       apps_path: "apps",
       deps: deps(),
       dialyzer: dialyzer(),
-      elixir: "~> 1.17",
+      elixir: "~> 1.13",
       preferred_cli_env: [
         credo: :test,
         dialyzer: :test
@@ -23,9 +23,7 @@ defmodule BlockScout.Mixfile do
             block_scout_web: :permanent,
             ethereum_jsonrpc: :permanent,
             explorer: :permanent,
-            indexer: :permanent,
-            utils: :permanent,
-            nft_media_handler: :permanent
+            indexer: :permanent
           ],
           steps: [:assemble, &copy_prod_runtime_config/1],
           validate_compile_env: false
@@ -55,8 +53,8 @@ defmodule BlockScout.Mixfile do
   defp dialyzer() do
     [
       plt_add_deps: :app_tree,
-      plt_add_apps: ~w(credo ex_unit mix wallaby)a,
-      ignore_warnings: ".dialyzer_ignore.exs",
+      plt_add_apps: ~w(ex_unit mix wallaby)a,
+      ignore_warnings: ".dialyzer-ignore",
       plt_core_path: "priv/plts",
       plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
     ]
@@ -96,10 +94,9 @@ defmodule BlockScout.Mixfile do
     [
       {:prometheus_ex, git: "https://github.com/lanodan/prometheus.ex", branch: "fix/elixir-1.14", override: true},
       {:absinthe_plug, git: "https://github.com/blockscout/absinthe_plug.git", tag: "1.5.8", override: true},
-      {:tesla, "~> 1.14.1"},
-      {:mint, "~> 1.7.1"},
+      {:tesla, "~> 1.12.1"},
       # Documentation
-      {:ex_doc, "~> 0.37.2", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.34.1", only: :dev, runtime: false},
       {:number, "~> 1.0.3"}
     ]
   end

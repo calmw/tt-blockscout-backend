@@ -21,59 +21,67 @@ config :explorer, Explorer.ChainSpec.GenesisData, enabled: true
 
 config :explorer, Explorer.Chain.Cache.BlockNumber, enabled: true
 
-config :explorer, Explorer.Chain.Cache.Counters.AddressesCoinBalanceSum,
+config :explorer, Explorer.Chain.Cache.AddressSum,
   enabled: true,
   ttl_check_interval: :timer.seconds(1)
 
-config :explorer, Explorer.Chain.Cache.Counters.AddressesCoinBalanceSumMinusBurnt,
+config :explorer, Explorer.Chain.Cache.AddressSumMinusBurnt,
   enabled: true,
   ttl_check_interval: :timer.seconds(1)
 
-config :explorer, Explorer.Chain.Cache.Counters.AddressesCount,
+update_interval_in_milliseconds = ConfigHelper.parse_time_env_var("CACHE_ADDRESS_WITH_BALANCES_UPDATE_INTERVAL", "30m")
+
+config :explorer, Explorer.Counters.AddressesWithBalanceCounter,
+  enabled: false,
+  enable_consolidation: true,
+  update_interval_in_milliseconds: update_interval_in_milliseconds
+
+config :explorer, Explorer.Counters.AddressesCounter,
+  enabled: true,
+  enable_consolidation: true,
+  update_interval_in_milliseconds: update_interval_in_milliseconds
+
+config :explorer, Explorer.Counters.AddressTransactionsGasUsageCounter,
   enabled: true,
   enable_consolidation: true
 
-config :explorer, Explorer.Chain.Cache.Counters.AddressTransactionsGasUsageSum,
-  enabled: true,
-  enable_consolidation: true
-
-config :explorer, Explorer.Chain.Cache.Counters.AddressTokensUsdSum,
+config :explorer, Explorer.Counters.AddressTokenUsdSum,
   enabled: true,
   enable_consolidation: true
 
 update_interval_in_milliseconds_default = 30 * 60 * 1000
 
-config :explorer, Explorer.Chain.Cache.Counters.ContractsCount,
+config :explorer, Explorer.Chain.Cache.ContractsCounter,
   enabled: true,
   enable_consolidation: true,
   update_interval_in_milliseconds: update_interval_in_milliseconds_default
 
-config :explorer, Explorer.Chain.Cache.Counters.NewContractsCount,
+config :explorer, Explorer.Chain.Cache.NewContractsCounter,
   enabled: true,
   enable_consolidation: true,
   update_interval_in_milliseconds: update_interval_in_milliseconds_default
 
-config :explorer, Explorer.Chain.Cache.Counters.VerifiedContractsCount,
+config :explorer, Explorer.Chain.Cache.VerifiedContractsCounter,
   enabled: true,
   enable_consolidation: true,
   update_interval_in_milliseconds: update_interval_in_milliseconds_default
 
-config :explorer, Explorer.Chain.Cache.Counters.NewVerifiedContractsCount,
+config :explorer, Explorer.Chain.Cache.NewVerifiedContractsCounter,
   enabled: true,
   enable_consolidation: true,
   update_interval_in_milliseconds: update_interval_in_milliseconds_default
 
-config :explorer, Explorer.Chain.Cache.Counters.WithdrawalsSum,
+config :explorer, Explorer.Chain.Cache.WithdrawalsSum,
   enabled: true,
   enable_consolidation: true,
   update_interval_in_milliseconds: update_interval_in_milliseconds_default
 
-config :explorer, Explorer.Chain.Cache.Counters.Stability.ValidatorsCount,
+config :explorer, Explorer.Chain.Cache.StabilityValidatorsCounters,
   enabled: true,
   enable_consolidation: true,
   update_interval_in_milliseconds: update_interval_in_milliseconds_default
 
-config :explorer, Explorer.Chain.Cache.Counters.Blackfort.ValidatorsCount,
+config :explorer, Explorer.Chain.Cache.BlackfortValidatorsCounters,
   enabled: true,
   enable_consolidation: true,
   update_interval_in_milliseconds: update_interval_in_milliseconds_default
@@ -82,103 +90,60 @@ config :explorer, Explorer.Chain.Cache.TransactionActionTokensData, enabled: tru
 
 config :explorer, Explorer.Chain.Cache.TransactionActionUniswapPools, enabled: true
 
-config :explorer, Explorer.Market.Fetcher.Token, enabled: true
+config :explorer, Explorer.ExchangeRates.TokenExchangeRates, enabled: true
 
-config :explorer, Explorer.Chain.Cache.Counters.TokenHoldersCount,
+config :explorer, Explorer.Counters.TokenHoldersCounter,
   enabled: true,
   enable_consolidation: true
 
-config :explorer, Explorer.Chain.Cache.Counters.TokenTransfersCount,
+config :explorer, Explorer.Counters.TokenTransfersCounter,
   enabled: true,
   enable_consolidation: true
 
-config :explorer, Explorer.Chain.Cache.Counters.AddressTransactionsCount,
+config :explorer, Explorer.Counters.AddressTransactionsCounter,
   enabled: true,
   enable_consolidation: true
 
-config :explorer, Explorer.Chain.Cache.Counters.AddressTokenTransfersCount,
+config :explorer, Explorer.Counters.AddressTokenTransfersCounter,
   enabled: true,
   enable_consolidation: true
 
-config :explorer, Explorer.Chain.Cache.Counters.BlockBurntFeeCount,
+config :explorer, Explorer.Counters.BlockBurntFeeCounter,
   enabled: true,
   enable_consolidation: true
 
-config :explorer, Explorer.Chain.Cache.Counters.BlockPriorityFeeCount,
+config :explorer, Explorer.Counters.BlockPriorityFeeCounter,
   enabled: true,
   enable_consolidation: true
 
 config :explorer, Explorer.TokenInstanceOwnerAddressMigration.Supervisor, enabled: true
 
-for migrator <- [
-      # Background migrations
-      Explorer.Migrator.TransactionsDenormalization,
-      Explorer.Migrator.AddressCurrentTokenBalanceTokenType,
-      Explorer.Migrator.AddressTokenBalanceTokenType,
-      Explorer.Migrator.SanitizeMissingBlockRanges,
-      Explorer.Migrator.SanitizeIncorrectNFTTokenTransfers,
-      Explorer.Migrator.TokenTransferTokenType,
-      Explorer.Migrator.SanitizeIncorrectWETHTokenTransfers,
-      Explorer.Migrator.TransactionBlockConsensus,
-      Explorer.Migrator.TokenTransferBlockConsensus,
-      Explorer.Migrator.RestoreOmittedWETHTransfers,
-      Explorer.Migrator.SanitizeMissingTokenBalances,
-      Explorer.Migrator.SanitizeReplacedTransactions,
-      Explorer.Migrator.ReindexInternalTransactionsWithIncompatibleStatus,
-      Explorer.Migrator.SanitizeDuplicatedLogIndexLogs,
-      Explorer.Migrator.RefetchContractCodes,
-      Explorer.Migrator.BackfillMultichainSearchDB,
-      Explorer.Migrator.SanitizeVerifiedAddresses,
-      Explorer.Migrator.SmartContractLanguage,
-      Explorer.Migrator.SanitizeEmptyContractCodeAddresses,
-      Explorer.Migrator.BackfillMetadataURL
-    ] do
-  config :explorer, migrator, enabled: true
-end
-
-for index_operation <- [
-      # Heavy DB index operations
-      Explorer.Migrator.HeavyDbIndexOperation.CreateLogsBlockHashIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropLogsBlockNumberAscIndexAscIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateLogsAddressHashBlockNumberDescIndexDescIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropLogsAddressHashIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropLogsAddressHashTransactionHashIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropLogsIndexIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateLogsAddressHashFirstTopicBlockNumberIndexIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropInternalTransactionsFromAddressHashIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateInternalTransactionsBlockNumberDescTransactionIndexDescIndexDescIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropTokenTransfersBlockNumberAscLogIndexAscIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropTokenTransfersFromAddressHashTransactionHashIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropTokenTransfersToAddressHashTransactionHashIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropTokenTransfersTokenContractAddressHashTransactionHashIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropTokenTransfersBlockNumberIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateAddressesVerifiedIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropAddressesVerifiedIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateAddressesVerifiedHashIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateAddressesVerifiedTransactionsCountDescHashIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateAddressesVerifiedFetchedCoinBalanceDescHashIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateSmartContractsLanguageIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropTransactionsCreatedContractAddressHashWithPendingIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropTransactionsFromAddressHashWithPendingIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.DropTransactionsToAddressHashWithPendingIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateLogsDepositsWithdrawalsIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateAddressesTransactionsCountDescPartialIndex,
-      Explorer.Migrator.HeavyDbIndexOperation.CreateAddressesTransactionsCountAscCoinBalanceDescHashPartialIndex
-    ] do
-  config :explorer, index_operation, enabled: true
-end
+config :explorer, Explorer.Migrator.TransactionsDenormalization, enabled: true
+config :explorer, Explorer.Migrator.AddressCurrentTokenBalanceTokenType, enabled: true
+config :explorer, Explorer.Migrator.AddressTokenBalanceTokenType, enabled: true
+config :explorer, Explorer.Migrator.SanitizeMissingBlockRanges, enabled: true
+config :explorer, Explorer.Migrator.SanitizeIncorrectNFTTokenTransfers, enabled: true
+config :explorer, Explorer.Migrator.TokenTransferTokenType, enabled: true
+config :explorer, Explorer.Migrator.SanitizeIncorrectWETHTokenTransfers, enabled: true
+config :explorer, Explorer.Migrator.TransactionBlockConsensus, enabled: true
+config :explorer, Explorer.Migrator.TokenTransferBlockConsensus, enabled: true
+config :explorer, Explorer.Migrator.RestoreOmittedWETHTransfers, enabled: true
+config :explorer, Explorer.Migrator.SanitizeMissingTokenBalances, enabled: true
+config :explorer, Explorer.Migrator.SanitizeReplacedTransactions, enabled: true
+config :explorer, Explorer.Migrator.ReindexInternalTransactionsWithIncompatibleStatus, enabled: true
 
 config :explorer, Explorer.Chain.Fetcher.CheckBytecodeMatchingOnDemand, enabled: true
 
 config :explorer, Explorer.Chain.Fetcher.FetchValidatorInfoOnDemand, enabled: true
+
+config :explorer, Explorer.Chain.Cache.GasUsage,
+  enabled: ConfigHelper.parse_bool_env_var("CACHE_TOTAL_GAS_USAGE_COUNTER_ENABLED")
 
 config :explorer, Explorer.Integrations.EctoLogger, query_time_ms_threshold: :timer.seconds(2)
 
 config :explorer, Explorer.Tags.AddressTag.Cataloger, enabled: true
 
 config :explorer, Explorer.SmartContract.CertifiedSmartContractCataloger, enabled: true
-
-config :explorer, Explorer.Utility.RateLimiter, enabled: true
 
 config :explorer, Explorer.Repo, migration_timestamps: [type: :utc_datetime_usec]
 

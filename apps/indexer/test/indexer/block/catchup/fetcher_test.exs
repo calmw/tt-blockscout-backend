@@ -15,7 +15,6 @@ defmodule Indexer.Block.Catchup.FetcherTest do
   alias Indexer.Block.Catchup.MissingRangesCollector
   alias Indexer.Fetcher.CoinBalance.Catchup, as: CoinBalanceCatchup
   alias Indexer.Fetcher.{BlockReward, InternalTransaction, Token, TokenBalance, UncleBlock}
-  alias Indexer.Fetcher.OnDemand.ContractCreator, as: ContractCreatorOnDemand
 
   @moduletag capture_log: true
 
@@ -43,8 +42,6 @@ defmodule Indexer.Block.Catchup.FetcherTest do
       Application.put_env(:indexer, :last_block, 0)
       Application.put_env(:indexer, Indexer.Fetcher.Celo.EpochBlockOperations.Supervisor, disabled?: true)
 
-      {:ok, _pid} = ContractCreatorOnDemand.start_link([[], []])
-
       on_exit(fn ->
         Application.put_env(:indexer, :last_block, configuration)
       end)
@@ -55,11 +52,7 @@ defmodule Indexer.Block.Catchup.FetcherTest do
       InternalTransaction.Supervisor.Case.start_supervised!(json_rpc_named_arguments: json_rpc_named_arguments)
       Token.Supervisor.Case.start_supervised!(json_rpc_named_arguments: json_rpc_named_arguments)
       TokenBalance.Supervisor.Case.start_supervised!(json_rpc_named_arguments: json_rpc_named_arguments)
-
-      Indexer.Fetcher.Filecoin.AddressInfo.Supervisor.Case.start_supervised!(
-        json_rpc_named_arguments: json_rpc_named_arguments
-      )
-
+      Indexer.Fetcher.Filecoin.AddressInfo.Supervisor.Case.start_supervised!()
       MissingRangesCollector.start_link([])
       MissingRangesManipulator.start_link([])
 

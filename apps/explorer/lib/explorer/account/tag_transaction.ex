@@ -7,19 +7,15 @@ defmodule Explorer.Account.TagTransaction do
 
   import Ecto.Changeset
 
-  alias Ecto.{Changeset, Multi}
+  alias Ecto.Changeset
   alias Explorer.Account.Identity
   alias Explorer.{Chain, PagingOptions, Repo}
-  alias Explorer.Chain.Hash
   import Explorer.Chain, only: [hash_to_lower_case_string: 1]
-
-  @user_not_found "User not found"
 
   typed_schema "account_tag_transactions" do
     field(:transaction_hash_hash, Cloak.Ecto.SHA256) :: binary() | nil
     field(:name, Explorer.Encrypted.Binary, null: false)
     field(:transaction_hash, Explorer.Encrypted.TransactionHash, null: false)
-    field(:user_created, :boolean, null: false, default: true)
 
     belongs_to(:identity, Identity, null: false)
 
@@ -39,62 +35,16 @@ defmodule Explorer.Account.TagTransaction do
     |> cast(attrs, @attrs)
     |> validate_required(@attrs, message: "Required")
     |> validate_length(:name, min: 1, max: 35)
-    |> foreign_key_constraint(:identity_id, message: @user_not_found)
     |> put_hashed_fields()
     |> unique_constraint([:identity_id, :transaction_hash_hash], message: "Transaction tag already exists")
     |> tag_transaction_count_constraint()
     |> check_transaction_existence()
   end
 
-  @doc """
-  Creates a new tag transaction record in a transactional context.
-
-  Ensures data consistency by acquiring a lock on the associated identity record
-  before creating the tag transaction. The operation either succeeds completely or
-  fails without side effects.
-
-  ## Parameters
-  - `attrs`: A map of attributes that must include:
-    - `:identity_id`: The ID of the associated identity
-
-  ## Returns
-  - `{:ok, tag_transaction}` - Successfully created tag transaction record
-  - `{:error, changeset}` - A changeset with errors if:
-    - The identity doesn't exist
-    - The identity ID is missing from the attributes
-    - The changeset validation fails
-  """
-  @spec create(map()) :: {:ok, t()} | {:error, Changeset.t()}
-  def create(%{identity_id: identity_id} = attrs) do
-    Multi.new()
-    |> Identity.acquire_with_lock(identity_id)
-    |> Multi.insert(:tag_transaction, fn _ ->
-      %__MODULE__{}
-      |> changeset(attrs)
-    end)
-    |> Repo.account_repo().transaction()
-    |> case do
-      {:ok, %{tag_transaction: tag_transaction}} ->
-        {:ok, tag_transaction}
-
-      {:error, :tag_transaction, :not_found, _changes} ->
-        {:error,
-         %__MODULE__{}
-         |> changeset(attrs)
-         |> add_error(:identity_id, @user_not_found,
-           constraint: :foreign,
-           constraint_name: "account_tag_transactions_identity_id_fkey"
-         )}
-
-      {:error, _failed_operation, error, _changes} ->
-        {:error, error}
-    end
-  end
-
   def create(attrs) do
-    {:error,
-     %__MODULE__{}
-     |> changeset(attrs)}
+    %__MODULE__{}
+    |> changeset(attrs)
+    |> Repo.account_repo().insert()
   end
 
   defp put_hashed_fields(changeset) do
@@ -172,29 +122,20 @@ defmodule Explorer.Account.TagTransaction do
 
   defp page_transaction_tags(query, _), do: query
 
-  @doc """
-  Retrieves tag transactions for a given transaction hash and identity ID.
+  def tag_transaction_by_transaction_hash_and_identity_id_query(transaction_hash, identity_id)
+      when not is_nil(transaction_hash) and not is_nil(identity_id) do
+    __MODULE__
+    |> where([tag], tag.identity_id == ^identity_id and tag.transaction_hash == ^transaction_hash)
+  end
 
-  This function queries the database for all tag transactions that match both
-  the provided transaction hash and identity ID.
+  def tag_transaction_by_transaction_hash_and_identity_id_query(_, _), do: nil
 
-  ## Parameters
-  - `transaction_hash`: The transaction hash to search for. Can be a `String.t()`,
-    `Explorer.Chain.Hash.Full.t()`, or `nil`.
-  - `identity_id`: The identity ID to search for. Can be an `integer()` or `nil`.
-
-  ## Returns
-  - A list of `Explorer.Account.TagTransaction` structs if matching records are found.
-  - `nil` if either `transaction_hash` or `identity_id` is `nil`.
-  """
-  @spec get_tag_transaction_by_transaction_hash_and_identity_id(String.t() | Hash.Full.t() | nil, integer() | nil) ::
-          [__MODULE__.t()] | nil
   def get_tag_transaction_by_transaction_hash_and_identity_id(transaction_hash, identity_id)
       when not is_nil(transaction_hash) and not is_nil(identity_id) do
-    query =
-      from(tag in __MODULE__, where: tag.transaction_hash_hash == ^transaction_hash and tag.identity_id == ^identity_id)
-
-    Repo.account_repo().all(query)
+    transaction_hash
+    |> hash_to_lower_case_string()
+    |> tag_transaction_by_transaction_hash_and_identity_id_query(identity_id)
+    |> Repo.account_repo().one()
   end
 
   def get_tag_transaction_by_transaction_hash_and_identity_id(_, _), do: nil
@@ -235,32 +176,6 @@ defmodule Explorer.Account.TagTransaction do
   end
 
   def get_max_tags_count, do: Application.get_env(:explorer, Explorer.Account)[:private_tags_limit]
-
-  @doc """
-  Merges transaction tags from multiple identities into a primary identity.
-
-  This function updates the `identity_id` of all transaction tags belonging to the
-  identities specified in `ids_to_merge` to the `primary_id`. It's designed to
-  be used as part of an Ecto.Multi transaction.
-
-  ## Parameters
-  - `multi`: An Ecto.Multi struct to which this operation will be added.
-  - `primary_id`: The ID of the primary identity that will own the merged keys.
-  - `ids_to_merge`: A list of identity IDs whose transaction tags will be merged.
-
-  ## Returns
-  - An updated Ecto.Multi struct with the merge operation added.
-  """
-  @spec merge(Multi.t(), integer(), [integer()]) :: Multi.t()
-  def merge(multi, primary_id, ids_to_merge) do
-    Multi.run(multi, :merge_tag_transactions, fn repo, _ ->
-      {:ok,
-       repo.update_all(
-         from(key in __MODULE__, where: key.identity_id in ^ids_to_merge),
-         set: [identity_id: primary_id, user_created: false]
-       )}
-    end)
-  end
 end
 
 defimpl Jason.Encoder, for: Explorer.Account.TagTransaction do

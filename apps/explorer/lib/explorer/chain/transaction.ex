@@ -5,7 +5,6 @@ defmodule Explorer.Chain.Transaction.Schema do
     Changes in the schema should be reflected in the bulk import module:
     - Explorer.Chain.Import.Runner.Transactions
   """
-  use Utils.CompileTimeEnvHelper, chain_type: [:explorer, :chain_type]
 
   alias Explorer.Chain
 
@@ -17,7 +16,6 @@ defmodule Explorer.Chain.Transaction.Schema do
     Hash,
     InternalTransaction,
     Log,
-    PendingTransactionOperation,
     SignedAuthorization,
     TokenTransfer,
     TransactionAction,
@@ -31,7 +29,7 @@ defmodule Explorer.Chain.Transaction.Schema do
   alias Explorer.Chain.Transaction.{Fork, Status}
   alias Explorer.Chain.ZkSync.BatchTransaction, as: ZkSyncBatchTransaction
 
-  @chain_type_fields (case @chain_type do
+  @chain_type_fields (case Application.compile_env(:explorer, :chain_type) do
                         :ethereum ->
                           # elem(quote do ... end, 2) doesn't work with a single has_one instruction
                           quote do
@@ -49,15 +47,6 @@ defmodule Explorer.Chain.Transaction.Schema do
                               field(:l1_gas_used, :decimal)
                               field(:l1_transaction_origin, Hash.Full)
                               field(:l1_block_number, :integer)
-                            end,
-                            2
-                          )
-
-                        :scroll ->
-                          elem(
-                            quote do
-                              field(:l1_fee, Wei)
-                              field(:queue_index, :integer)
                             end,
                             2
                           )
@@ -287,8 +276,6 @@ defmodule Explorer.Chain.Transaction.Schema do
           references: :hash
         )
 
-        has_one(:pending_operation, PendingTransactionOperation, foreign_key: :transaction_hash, references: :hash)
-
         unquote_splicing(@chain_type_fields)
       end
     end
@@ -299,10 +286,6 @@ defmodule Explorer.Chain.Transaction do
   @moduledoc "Models a Web3 transaction."
 
   use Explorer.Schema
-
-  use Utils.CompileTimeEnvHelper,
-    chain_type: [:explorer, :chain_type],
-    decode_not_a_contract_calls: [:explorer, :decode_not_a_contract_calls]
 
   require Logger
   require Explorer.Chain.Transaction.Schema
@@ -326,11 +309,7 @@ defmodule Explorer.Chain.Transaction do
     Wei
   }
 
-  alias Explorer.Chain.Block.Reader.General, as: BlockReaderGeneral
-
   alias Explorer.Chain.SmartContract.Proxy.Models.Implementation
-
-  alias Explorer.Helper, as: ExplorerHelper
 
   alias Explorer.SmartContract.SigProviderInterface
 
@@ -340,12 +319,9 @@ defmodule Explorer.Chain.Transaction do
                      gas_used index created_contract_code_indexed_at status
                      to_address_hash revert_reason type has_error_in_internal_transactions r s v)a
 
-  @chain_type_optional_attrs (case @chain_type do
+  @chain_type_optional_attrs (case Application.compile_env(:explorer, :chain_type) do
                                 :optimism ->
                                   ~w(l1_fee l1_fee_scalar l1_gas_price l1_gas_used l1_transaction_origin l1_block_number)a
-
-                                :scroll ->
-                                  ~w(l1_fee queue_index)a
 
                                 :suave ->
                                   ~w(execution_node_hash wrapped_type wrapped_nonce wrapped_to_address_hash wrapped_gas wrapped_gas_price wrapped_max_priority_fee_per_gas wrapped_max_fee_per_gas wrapped_value wrapped_input wrapped_v wrapped_r wrapped_s wrapped_hash)a
@@ -566,7 +542,7 @@ defmodule Explorer.Chain.Transaction do
       iex> changeset.valid?
       true
 
-  A collated transaction MUST have an `index` so its position in the `block` is known and the `cumulative_gas_used` and
+  A collated transaction MUST have an `index` so its position in the `block` is known and the `cumulative_gas_used` ane
   `gas_used` to know its fees.
 
   Post-Byzantium, the status must be present when a block is collated.
@@ -781,10 +757,10 @@ defmodule Explorer.Chain.Transaction do
           boolean(),
           [Chain.api?()],
           methods_map,
-          smart_contract_full_abi_map
+          proxy_implementation_abi_map
         ) :: error_type | success_type
         when methods_map: map(),
-             smart_contract_full_abi_map: map(),
+             proxy_implementation_abi_map: map(),
              error_type: {:error, any()} | {:error, :contract_not_verified | :contract_verified, list()},
              success_type: {:ok | binary(), any()} | {:ok, binary(), binary(), list()}
   def decoded_input_data(
@@ -792,7 +768,7 @@ defmodule Explorer.Chain.Transaction do
         skip_sig_provider? \\ false,
         options,
         methods_map \\ %{},
-        smart_contract_full_abi_map \\ %{}
+        proxy_implementation_abi_map \\ %{}
       )
 
   # skip decoding if there is no to_address
@@ -822,7 +798,7 @@ defmodule Explorer.Chain.Transaction do
   end
 
   # skip decoding if to_address is not a contract unless DECODE_NOT_A_CONTRACT_CALLS is set
-  if not @decode_not_a_contract_calls do
+  if not Application.compile_env(:explorer, :decode_not_a_contract_calls) do
     def decoded_input_data(
           %__MODULE__{to_address: %{contract_code: nil}},
           _,
@@ -843,7 +819,7 @@ defmodule Explorer.Chain.Transaction do
         skip_sig_provider?,
         options,
         methods_map,
-        smart_contract_full_abi_map
+        proxy_implementation_abi_map
       ) do
     decoded_input_data(
       %__MODULE__{
@@ -854,7 +830,7 @@ defmodule Explorer.Chain.Transaction do
       skip_sig_provider?,
       options,
       methods_map,
-      smart_contract_full_abi_map
+      proxy_implementation_abi_map
     )
   end
 
@@ -868,7 +844,7 @@ defmodule Explorer.Chain.Transaction do
         skip_sig_provider?,
         options,
         methods_map,
-        smart_contract_full_abi_map
+        proxy_implementation_abi_map
       ) do
     decoded_input_data(
       %__MODULE__{
@@ -879,7 +855,7 @@ defmodule Explorer.Chain.Transaction do
       skip_sig_provider?,
       options,
       methods_map,
-      smart_contract_full_abi_map
+      proxy_implementation_abi_map
     )
   end
 
@@ -893,7 +869,7 @@ defmodule Explorer.Chain.Transaction do
         skip_sig_provider?,
         options,
         methods_map,
-        _smart_contract_full_abi_map
+        _proxy_implementation_abi_map
       ) do
     methods = check_methods_cache(method_id, methods_map, options)
 
@@ -934,9 +910,9 @@ defmodule Explorer.Chain.Transaction do
         skip_sig_provider?,
         options,
         methods_map,
-        smart_contract_full_abi_map
+        proxy_implementation_abi_map
       ) do
-    full_abi = check_full_abi_cache(smart_contract, smart_contract_full_abi_map, options)
+    full_abi = check_full_abi_cache(smart_contract, proxy_implementation_abi_map, options)
 
     case do_decoded_input_data(data, full_abi, hash) do
       # In some cases transactions use methods of some unpredictable contracts, so we can try to look up for method in a whole DB
@@ -950,7 +926,7 @@ defmodule Explorer.Chain.Transaction do
                skip_sig_provider?,
                options,
                methods_map,
-               smart_contract_full_abi_map
+               proxy_implementation_abi_map
              ) do
           {:error, :contract_not_verified, []} ->
             decode_function_call_via_sig_provider_wrapper(input, hash, skip_sig_provider?)
@@ -1011,10 +987,10 @@ defmodule Explorer.Chain.Transaction do
 
   defp check_full_abi_cache(
          smart_contract,
-         smart_contract_full_abi_map,
+         proxy_implementation_abi_map,
          options
        ) do
-    Map.get_lazy(smart_contract_full_abi_map, smart_contract.address_hash, fn ->
+    Map.get_lazy(proxy_implementation_abi_map, smart_contract, fn ->
       Proxy.combine_proxy_implementation_abi(smart_contract, options)
     end)
   end
@@ -1040,7 +1016,7 @@ defmodule Explorer.Chain.Transaction do
           parse_method_name(decoded_func)
 
         {:error, :contract_not_verified, []} ->
-          ExplorerHelper.add_0x_prefix(method_id)
+          "0x" <> Base.encode16(method_id, case: :lower)
 
         _ ->
           "Transfer"
@@ -1125,57 +1101,22 @@ defmodule Explorer.Chain.Transaction do
   transactions that are linked to the given address_hash through a direction.
   """
   def matching_address_queries_list(query, :from, address_hashes) when is_list(address_hashes) do
-    [
-      from(
-        a in fragment("SELECT unnest(?) as from_address_hash", type(^address_hashes, {:array, Hash.Address})),
-        as: :address_hashes,
-        cross_lateral_join:
-          transaction in subquery(
-            query
-            |> where([transaction], transaction.from_address_hash == parent_as(:address_hashes).from_address_hash)
-          ),
-        as: :transaction,
-        select: transaction
-      )
-    ]
+    [where(query, [t], t.from_address_hash in ^address_hashes)]
   end
 
   def matching_address_queries_list(query, :to, address_hashes) when is_list(address_hashes) do
     [
-      from(
-        a in fragment("SELECT unnest(?) as to_address_hash", type(^address_hashes, {:array, Hash.Address})),
-        as: :address_hashes,
-        cross_lateral_join:
-          transaction in subquery(
-            query
-            |> where([transaction], transaction.to_address_hash == parent_as(:address_hashes).to_address_hash)
-          ),
-        as: :transaction,
-        select: transaction
-      ),
-      from(
-        a in fragment(
-          "SELECT unnest(?) as created_contract_address_hash",
-          type(^address_hashes, {:array, Hash.Address})
-        ),
-        as: :address_hashes,
-        cross_lateral_join:
-          transaction in subquery(
-            query
-            |> where(
-              [transaction],
-              transaction.created_contract_address_hash == parent_as(:address_hashes).created_contract_address_hash
-            )
-          ),
-        as: :transaction,
-        select: transaction
-      )
+      where(query, [t], t.to_address_hash in ^address_hashes),
+      where(query, [t], t.created_contract_address_hash in ^address_hashes)
     ]
   end
 
   def matching_address_queries_list(query, _direction, address_hashes) when is_list(address_hashes) do
-    matching_address_queries_list(query, :from, address_hashes) ++
-      matching_address_queries_list(query, :to, address_hashes)
+    [
+      where(query, [t], t.from_address_hash in ^address_hashes),
+      where(query, [t], t.to_address_hash in ^address_hashes),
+      where(query, [t], t.created_contract_address_hash in ^address_hashes)
+    ]
   end
 
   def matching_address_queries_list(query, :from, address_hash) do
@@ -1346,28 +1287,6 @@ defmodule Explorer.Chain.Transaction do
     from(
       t in Transaction,
       where: t.block_number == ^block_number
-    )
-  end
-
-  @doc """
-  Builds an `Ecto.Query` to fetch transactions for the specified block_numbers
-  """
-  @spec transactions_for_block_numbers([non_neg_integer()]) :: Ecto.Query.t()
-  def transactions_for_block_numbers(block_numbers) do
-    from(
-      t in Transaction,
-      where: t.block_number in ^block_numbers
-    )
-  end
-
-  @doc """
-  Builds an `Ecto.Query` to fetch transactions by hashes
-  """
-  @spec transactions_by_hashes([Hash.t()]) :: Ecto.Query.t()
-  def transactions_by_hashes(hashes) do
-    from(
-      t in Transaction,
-      where: t.hash in ^hashes
     )
   end
 
@@ -1650,18 +1569,6 @@ defmodule Explorer.Chain.Transaction do
     end
   end
 
-  defp compare_custom_sorting([{block_order, :block_number}, {index_order, :index}]) do
-    fn a, b ->
-      case {Helper.compare(a.block_number, b.block_number), Helper.compare(a.index, b.index)} do
-        {:eq, :eq} -> compare_default_sorting(a, b)
-        {:eq, :gt} -> index_order == :desc
-        {:eq, :lt} -> index_order == :asc
-        {:gt, _} -> block_order == :desc
-        {:lt, _} -> block_order == :asc
-      end
-    end
-  end
-
   defp compare_custom_sorting([{:dynamic, :fee, order, _dynamic_fee}]) do
     fn a, b ->
       nil_case =
@@ -1708,7 +1615,7 @@ defmodule Explorer.Chain.Transaction do
   def fetch_transactions(paging_options \\ nil, from_block \\ nil, to_block \\ nil, with_pending? \\ false) do
     __MODULE__
     |> order_for_transactions(with_pending?)
-    |> BlockReaderGeneral.where_block_number_in_period(from_block, to_block)
+    |> Chain.where_block_number_in_period(from_block, to_block)
     |> handle_paging_options(paging_options)
   end
 
@@ -1733,7 +1640,7 @@ defmodule Explorer.Chain.Transaction do
     query = from(transaction in __MODULE__)
 
     query
-    |> BlockReaderGeneral.where_block_number_in_period(from_block, to_block)
+    |> Chain.where_block_number_in_period(from_block, to_block)
     |> SortingHelper.apply_sorting(sorting, @default_sorting)
     |> SortingHelper.page_with_sorting(paging_options, sorting, @default_sorting)
   end
@@ -1840,53 +1747,22 @@ defmodule Explorer.Chain.Transaction do
   end
 
   @doc """
-  Adds a `has_token_transfers` field to the query when second argument is `false`.
-
-  When the second argument is `true`, returns the query untouched. When `false`,
-  adds a field indicating whether the transaction has any token transfers by using
-  a subquery to check if token_transfers table contains the transaction hash.
-
-  ## Parameters
-  - `query`: The Ecto query to be modified
-  - `false_or_true`: Boolean indicating whether to add the field (when `false`) or
-    leave the query untouched (when `true`)
-  - `options`: Additional options for query construction
-    - `:aliased?`: When `true`, uses the aliased transaction reference in the query
-
-  ## Returns
-  - The modified Ecto query with the `has_token_transfers` field added via
-    `select_merge` (when second parameter is `false`)
-  - The original query unchanged (when second parameter is `true`)
+  Adds a `has_token_transfers` field to the query via `select_merge` if second argument is `false` and returns
+  the query untouched otherwise.
   """
-  @spec put_has_token_transfers_to_transaction(Ecto.Query.t() | atom, boolean, keyword) :: Ecto.Query.t()
-  def put_has_token_transfers_to_transaction(query, old_ui?, options \\ [])
+  @spec put_has_token_transfers_to_transaction(Ecto.Query.t() | atom, boolean) :: Ecto.Query.t()
+  def put_has_token_transfers_to_transaction(query, true), do: query
 
-  def put_has_token_transfers_to_transaction(query, true, _options), do: query
-
-  def put_has_token_transfers_to_transaction(query, false, options) do
-    aliased? = Keyword.get(options, :aliased?, false)
-
-    if aliased? do
-      from(transaction in query,
-        select_merge: %{
-          has_token_transfers:
-            fragment(
-              "(SELECT transaction_hash FROM token_transfers WHERE transaction_hash = ? LIMIT 1) IS NOT NULL",
-              as(:transaction).hash
-            )
-        }
-      )
-    else
-      from(transaction in query,
-        select_merge: %{
-          has_token_transfers:
-            fragment(
-              "(SELECT transaction_hash FROM token_transfers WHERE transaction_hash = ? LIMIT 1) IS NOT NULL",
-              transaction.hash
-            )
-        }
-      )
-    end
+  def put_has_token_transfers_to_transaction(query, false) do
+    from(transaction in query,
+      select_merge: %{
+        has_token_transfers:
+          fragment(
+            "(SELECT transaction_hash FROM token_transfers WHERE transaction_hash = ? LIMIT 1) IS NOT NULL",
+            transaction.hash
+          )
+      }
+    )
   end
 
   @doc """
@@ -1918,7 +1794,7 @@ defmodule Explorer.Chain.Transaction do
   end
 
   @doc """
-  The fee a `transaction` paid for the `t:Explorer.Chain.Transaction.t/0` `gas`.
+  The fee a `transaction` paid for the `t:Explorer.Transaction.t/0` `gas`
 
   If the transaction is pending, then the fee will be a range of `unit`
 
@@ -1950,25 +1826,28 @@ defmodule Explorer.Chain.Transaction do
   def fee(%Transaction{gas: _gas, gas_price: nil, gas_used: nil}, _unit), do: {:maximum, nil}
 
   def fee(%Transaction{gas: gas, gas_price: gas_price, gas_used: nil} = transaction, unit) do
-    {:maximum, fee_calc(transaction, gas_price, gas, unit)}
+    {:maximum, fee(transaction, gas_price, gas, unit)}
   end
 
-  if @chain_type == :optimism do
-    def fee(%Transaction{gas_price: nil, gas_used: _gas_used}, _unit) do
+  def fee(%Transaction{gas_price: nil, gas_used: gas_used} = transaction, unit) do
+    if Application.get_env(:explorer, :chain_type) == :optimism do
       {:actual, nil}
-    end
-  else
-    def fee(%Transaction{gas_price: nil, gas_used: gas_used} = transaction, unit) do
+    else
       gas_price = effective_gas_price(transaction)
-      {:actual, gas_price && l2_fee_calc(gas_price, gas_used, unit)}
+
+      {:actual,
+       gas_price &&
+         gas_price
+         |> Wei.to(unit)
+         |> Decimal.mult(gas_used)}
     end
   end
 
   def fee(%Transaction{gas_price: gas_price, gas_used: gas_used} = transaction, unit) do
-    {:actual, fee_calc(transaction, gas_price, gas_used, unit)}
+    {:actual, fee(transaction, gas_price, gas_used, unit)}
   end
 
-  defp fee_calc(transaction, gas_price, gas_used, unit) do
+  defp fee(transaction, gas_price, gas, unit) do
     l1_fee =
       case Map.get(transaction, :l1_fee) do
         nil -> Wei.from(Decimal.new(0), :wei)
@@ -1976,36 +1855,11 @@ defmodule Explorer.Chain.Transaction do
       end
 
     gas_price
-    |> l2_fee_calc(gas_used, unit)
+    |> Wei.to(unit)
+    |> Decimal.mult(gas)
     |> Wei.from(unit)
     |> Wei.sum(l1_fee)
     |> Wei.to(unit)
-  end
-
-  @doc """
-    The execution fee a `transaction` paid for the `t:Explorer.Chain.Transaction.t/0` `gas`.
-    Doesn't include L1 fee. See the description for the `fee` function for parameters and return values.
-  """
-  @spec l2_fee(Transaction.t(), :ether | :gwei | :wei) :: {:maximum, Decimal.t() | nil} | {:actual, Decimal.t() | nil}
-  def l2_fee(%Transaction{gas: _gas, gas_price: nil, gas_used: nil}, _unit), do: {:maximum, nil}
-
-  def l2_fee(%Transaction{gas: gas, gas_price: gas_price, gas_used: nil}, unit) do
-    {:maximum, l2_fee_calc(gas_price, gas, unit)}
-  end
-
-  def l2_fee(%Transaction{gas_price: nil, gas_used: gas_used} = transaction, unit) do
-    gas_price = effective_gas_price(transaction)
-    {:actual, gas_price && l2_fee_calc(gas_price, gas_used, unit)}
-  end
-
-  def l2_fee(%Transaction{gas_price: gas_price, gas_used: gas_used}, unit) do
-    {:actual, l2_fee_calc(gas_price, gas_used, unit)}
-  end
-
-  defp l2_fee_calc(gas_price, gas_used, unit) do
-    gas_price
-    |> Wei.to(unit)
-    |> Decimal.mult(gas_used)
   end
 
   @doc """
@@ -2078,7 +1932,9 @@ defmodule Explorer.Chain.Transaction do
     Repo.replica().aggregate(
       from(
         t in Transaction,
-        where: t.block_number >= ^from and t.block_number <= ^to and t.block_consensus == true
+        inner_join: b in Block,
+        on: b.number == t.block_number and b.consensus == true,
+        where: t.block_number >= ^from and t.block_number <= ^to
       ),
       :count,
       timeout: :infinity
@@ -2092,23 +1948,23 @@ defmodule Explorer.Chain.Transaction do
   """
   @spec decode_transactions([Transaction.t()], boolean(), Keyword.t()) :: [nil | {:ok, String.t(), String.t(), map()}]
   def decode_transactions(transactions, skip_sig_provider?, opts) do
-    smart_contract_full_abi_map = combine_smart_contract_full_abi_map(transactions)
+    proxy_implementation_abi_map = combine_proxy_implementation_abi_map(transactions)
 
     # first we assemble an empty methods map, so that decoded_input_data will skip ContractMethod.t() lookup and decoding
     empty_methods_map =
       transactions
       |> Enum.flat_map(fn
-        %{input: %{bytes: <<method_id::binary-size(4), _::binary>>}} -> [method_id]
+        %{input: <<method_id::binary-size(4), _::binary>>} -> [method_id]
         _ -> []
       end)
       |> Enum.into(%{}, &{&1, []})
 
-    # try to decode transaction using full abi data from smart_contract_full_abi_map
+    # try to decode transaction using full abi data from proxy_implementation_abi_map
     decoded_transactions =
       transactions
       |> Enum.map(fn transaction ->
         transaction
-        |> decoded_input_data(skip_sig_provider?, opts, empty_methods_map, smart_contract_full_abi_map)
+        |> decoded_input_data(skip_sig_provider?, opts, empty_methods_map, proxy_implementation_abi_map)
         |> format_decoded_input()
       end)
       |> Enum.zip(transactions)
@@ -2117,12 +1973,12 @@ defmodule Explorer.Chain.Transaction do
     methods_map =
       decoded_transactions
       |> Enum.flat_map(fn
-        {nil, %{input: %{bytes: <<method_id::binary-size(4), _::binary>>}}} -> [method_id]
+        {nil, %{input: <<method_id::binary-size(4), _::binary>>}} -> [method_id]
         _ -> []
       end)
       |> Enum.uniq()
       |> ContractMethod.find_contract_methods(opts)
-      |> Enum.into(empty_methods_map, &{&1.identifier, [&1]})
+      |> Enum.into(%{}, &{&1.identifier, [&1]})
 
     # decode remaining transaction using methods map
     decoded_transactions
@@ -2130,7 +1986,7 @@ defmodule Explorer.Chain.Transaction do
       {nil, transaction} ->
         transaction
         |> Map.put(:to_address, %NotLoaded{})
-        |> decoded_input_data(skip_sig_provider?, opts, methods_map, smart_contract_full_abi_map)
+        |> decoded_input_data(skip_sig_provider?, opts, methods_map, proxy_implementation_abi_map)
         |> format_decoded_input()
 
       {decoded, _} ->
@@ -2138,7 +1994,7 @@ defmodule Explorer.Chain.Transaction do
     end)
   end
 
-  defp combine_smart_contract_full_abi_map(transactions) do
+  defp combine_proxy_implementation_abi_map(transactions) do
     # parse unique address hashes of smart-contracts from to_address and created_contract_address properties of the transactions list
     unique_to_address_hashes =
       transactions
@@ -2161,16 +2017,11 @@ defmodule Explorer.Chain.Transaction do
       |> Chain.hashes_to_addresses(necessity_by_association: %{smart_contract: :optional})
       |> Enum.into(%{}, &{&1.hash, &1})
 
-    # combine map %{proxy_address_hash => implementation address hashes}
-    proxy_implementations_map =
-      multiple_proxy_implementations
-      |> Enum.into(%{}, &{&1.proxy_address_hash, &1.address_hashes})
-
     # combine map %{proxy_address_hash => combined proxy abi}
-    unique_to_address_hashes
-    |> Enum.into(%{}, fn to_address_hash ->
+    multiple_proxy_implementations
+    |> Enum.into(%{}, fn proxy_implementations ->
       full_abi =
-        [to_address_hash | Map.get(proxy_implementations_map, to_address_hash, [])]
+        [proxy_implementations.proxy_address_hash | proxy_implementations.address_hashes]
         |> Enum.map(&Map.get(addresses_with_smart_contracts, &1))
         |> Enum.flat_map(fn
           %{smart_contract: %{abi: abi}} when is_list(abi) -> abi
@@ -2178,7 +2029,7 @@ defmodule Explorer.Chain.Transaction do
         end)
         |> Enum.filter(&(!is_nil(&1)))
 
-      {to_address_hash, full_abi}
+      {proxy_implementations.proxy_address_hash, full_abi}
     end)
   end
 
@@ -2207,7 +2058,7 @@ defmodule Explorer.Chain.Transaction do
         skip_sc_check?
       ) do
     if skip_sc_check? || Address.smart_contract?(to_address) do
-      ExplorerHelper.add_0x_prefix(method_id)
+      "0x" <> Base.encode16(method_id, case: :lower)
     else
       nil
     end

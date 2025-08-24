@@ -17,7 +17,6 @@ defmodule Indexer.Fetcher.TransactionAction do
 
   alias Explorer.{Chain, Repo}
   alias Explorer.Chain.{Block, BlockNumberHelper, Log, TransactionAction}
-  alias Explorer.Chain.Cache.Counters.LastFetchedCounter
   alias Indexer.Transform.{Addresses, TransactionActions}
 
   @stage_first_block "transaction_action_first_block"
@@ -210,20 +209,20 @@ defmodule Indexer.Fetcher.TransactionAction do
 
       if block_number == next_block do
         {:ok, _} =
-          LastFetchedCounter.upsert(%{
+          Chain.upsert_last_fetched_counter(%{
             counter_type: @stage_first_block,
             value: first_block
           })
 
         {:ok, _} =
-          LastFetchedCounter.upsert(%{
+          Chain.upsert_last_fetched_counter(%{
             counter_type: @stage_last_block,
             value: last_block
           })
       end
 
       {:ok, _} =
-        LastFetchedCounter.upsert(%{
+        Chain.upsert_last_fetched_counter(%{
           counter_type: @stage_next_block,
           value: next_block_new
         })
@@ -289,7 +288,7 @@ defmodule Indexer.Fetcher.TransactionAction do
 
   defp get_stage_block(type) do
     type
-    |> LastFetchedCounter.get()
+    |> Chain.get_last_fetched_counter()
     |> Decimal.to_integer()
   rescue
     _e in Ecto.NoResultsError -> 0

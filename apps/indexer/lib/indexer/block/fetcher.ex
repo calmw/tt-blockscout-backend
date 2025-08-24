@@ -16,7 +16,6 @@ defmodule Indexer.Block.Fetcher do
   alias Explorer.Chain.Cache.{Accounts, BlockNumber, Transactions, Uncles}
   alias Explorer.Chain.Filecoin.PendingAddressOperation, as: FilecoinPendingAddressOperation
   alias Explorer.Chain.{Address, Block, Hash, Import, Transaction, Wei}
-  alias Explorer.MicroserviceInterfaces.MultichainSearch
   alias Indexer.Block.Fetcher.Receipts
   alias Indexer.Fetcher.Arbitrum.MessagesToL2Matcher, as: ArbitrumMessagesToL2Matcher
   alias Indexer.Fetcher.Celo.EpochBlockOperations, as: CeloEpochBlockOperations
@@ -54,8 +53,6 @@ defmodule Indexer.Block.Fetcher do
   alias Indexer.Transform.Optimism.Withdrawals, as: OptimismWithdrawals
 
   alias Indexer.Transform.PolygonEdge.{DepositExecutes, Withdrawals}
-
-  alias Indexer.Transform.Scroll.L1FeeParams, as: ScrollL1FeeParams
 
   alias Indexer.Transform.Arbitrum.Messaging, as: ArbitrumMessaging
   alias Indexer.Transform.Shibarium.Bridge, as: ShibariumBridge
@@ -146,7 +143,7 @@ defmodule Indexer.Block.Fetcher do
         additional_options \\ %{}
       )
       when callback_module != nil do
-    {fetch_time, fetch_result} =
+    {fetch_time, fetched_blocks} =
       :timer.tc(fn -> EthereumJSONRPC.fetch_blocks_by_range(range, json_rpc_named_arguments) end)
 
     with {:blocks,
@@ -157,7 +154,7 @@ defmodule Indexer.Block.Fetcher do
              withdrawals_params: withdrawals_params,
              block_second_degree_relations_params: block_second_degree_relations_params,
              errors: blocks_errors
-           } = fetched_blocks}} <- {:blocks, fetch_result},
+           }}} <- {:blocks, fetched_blocks},
          blocks = TransformBlocks.transform_blocks(blocks_params),
          {:receipts, {:ok, receipt_params}} <- {:receipts, Receipts.fetch(state, transactions_params_without_receipts)},
          %{logs: receipt_logs, receipts: receipts} = receipt_params,
@@ -179,11 +176,6 @@ defmodule Indexer.Block.Fetcher do
          polygon_edge_deposit_executes =
            if(callback_module == Indexer.Block.Realtime.Fetcher,
              do: DepositExecutes.parse(logs),
-             else: []
-           ),
-         scroll_l1_fee_params =
-           if(callback_module == Indexer.Block.Realtime.Fetcher,
-             do: ScrollL1FeeParams.parse(logs),
              else: []
            ),
          shibarium_bridge_operations =
@@ -248,19 +240,16 @@ defmodule Indexer.Block.Fetcher do
            token_instances: %{params: token_instances},
            signed_authorizations: %{params: SignedAuthorizations.parse(transactions_with_receipts)}
          },
-         chain_type_import_options =
-           %{
-             transactions_with_receipts: transactions_with_receipts,
-             optimism_withdrawals: optimism_withdrawals,
-             polygon_edge_withdrawals: polygon_edge_withdrawals,
-             polygon_edge_deposit_executes: polygon_edge_deposit_executes,
-             polygon_zkevm_bridge_operations: polygon_zkevm_bridge_operations,
-             scroll_l1_fee_params: scroll_l1_fee_params,
-             shibarium_bridge_operations: shibarium_bridge_operations,
-             celo_gas_tokens: celo_gas_tokens,
-             arbitrum_messages: arbitrum_xlevel_messages
-           }
-           |> extend_with_zilliqa_import_options(fetched_blocks),
+         chain_type_import_options = %{
+           transactions_with_receipts: transactions_with_receipts,
+           optimism_withdrawals: optimism_withdrawals,
+           polygon_edge_withdrawals: polygon_edge_withdrawals,
+           polygon_edge_deposit_executes: polygon_edge_deposit_executes,
+           polygon_zkevm_bridge_operations: polygon_zkevm_bridge_operations,
+           shibarium_bridge_operations: shibarium_bridge_operations,
+           celo_gas_tokens: celo_gas_tokens,
+           arbitrum_messages: arbitrum_xlevel_messages
+         },
          {:ok, inserted} <-
            __MODULE__.import(
              state,
@@ -281,12 +270,6 @@ defmodule Indexer.Block.Fetcher do
       update_uncles_cache(inserted[:block_second_degree_relations])
       update_withdrawals_cache(inserted[:withdrawals])
 
-      update_multichain_search_db(%{
-        addresses: inserted[:addresses],
-        blocks: inserted[:blocks],
-        transactions: inserted[:transactions]
-      })
-
       async_match_arbitrum_messages_to_l2(arbitrum_transactions_for_further_handling)
 
       result
@@ -296,89 +279,59 @@ defmodule Indexer.Block.Fetcher do
     end
   end
 
-  defp import_options(basic_import_options, chain_specific_import_options) do
-    chain_type = Application.get_env(:explorer, :chain_type)
-    do_import_options(chain_type, basic_import_options, chain_specific_import_options)
-  end
-
-  defp do_import_options(:ethereum, basic_import_options, %{transactions_with_receipts: transactions_with_receipts}) do
-    basic_import_options
-    |> Map.put_new(:beacon_blob_transactions, %{
-      params: transactions_with_receipts |> Enum.filter(&Map.has_key?(&1, :max_fee_per_blob_gas))
-    })
-  end
-
-  defp do_import_options(:optimism, basic_import_options, %{optimism_withdrawals: optimism_withdrawals}) do
-    basic_import_options
-    |> Map.put_new(:optimism_withdrawals, %{params: optimism_withdrawals})
-  end
-
-  defp do_import_options(:polygon_edge, basic_import_options, %{
+  defp import_options(basic_import_options, %{
+         transactions_with_receipts: transactions_with_receipts,
+         optimism_withdrawals: optimism_withdrawals,
          polygon_edge_withdrawals: polygon_edge_withdrawals,
-         polygon_edge_deposit_executes: polygon_edge_deposit_executes
+         polygon_edge_deposit_executes: polygon_edge_deposit_executes,
+         polygon_zkevm_bridge_operations: polygon_zkevm_bridge_operations,
+         shibarium_bridge_operations: shibarium_bridge_operations,
+         celo_gas_tokens: celo_gas_tokens,
+         arbitrum_messages: arbitrum_xlevel_messages
        }) do
-    basic_import_options
-    |> Map.put_new(:polygon_edge_withdrawals, %{params: polygon_edge_withdrawals})
-    |> Map.put_new(:polygon_edge_deposit_executes, %{params: polygon_edge_deposit_executes})
-  end
+    case Application.get_env(:explorer, :chain_type) do
+      :ethereum ->
+        basic_import_options
+        |> Map.put_new(:beacon_blob_transactions, %{
+          params: transactions_with_receipts |> Enum.filter(&Map.has_key?(&1, :max_fee_per_blob_gas))
+        })
 
-  defp do_import_options(:polygon_zkevm, basic_import_options, %{
-         polygon_zkevm_bridge_operations: polygon_zkevm_bridge_operations
-       }) do
-    basic_import_options
-    |> Map.put_new(:polygon_zkevm_bridge_operations, %{params: polygon_zkevm_bridge_operations})
-  end
+      :optimism ->
+        basic_import_options
+        |> Map.put_new(:optimism_withdrawals, %{params: optimism_withdrawals})
 
-  defp do_import_options(:scroll, basic_import_options, %{scroll_l1_fee_params: scroll_l1_fee_params}) do
-    basic_import_options
-    |> Map.put_new(:scroll_l1_fee_params, %{params: scroll_l1_fee_params})
-  end
+      :polygon_edge ->
+        basic_import_options
+        |> Map.put_new(:polygon_edge_withdrawals, %{params: polygon_edge_withdrawals})
+        |> Map.put_new(:polygon_edge_deposit_executes, %{params: polygon_edge_deposit_executes})
 
-  defp do_import_options(:shibarium, basic_import_options, %{shibarium_bridge_operations: shibarium_bridge_operations}) do
-    basic_import_options
-    |> Map.put_new(:shibarium_bridge_operations, %{params: shibarium_bridge_operations})
-  end
+      :polygon_zkevm ->
+        basic_import_options
+        |> Map.put_new(:polygon_zkevm_bridge_operations, %{params: polygon_zkevm_bridge_operations})
 
-  defp do_import_options(:celo, basic_import_options, %{celo_gas_tokens: celo_gas_tokens}) do
-    tokens =
-      basic_import_options
-      |> Map.get(:tokens, %{})
-      |> Map.get(:params, [])
+      :shibarium ->
+        basic_import_options
+        |> Map.put_new(:shibarium_bridge_operations, %{params: shibarium_bridge_operations})
 
-    basic_import_options
-    |> Map.put(
-      :tokens,
-      %{params: (tokens ++ celo_gas_tokens) |> Enum.uniq()}
-    )
-  end
+      :celo ->
+        tokens =
+          basic_import_options
+          |> Map.get(:tokens, %{})
+          |> Map.get(:params, [])
 
-  defp do_import_options(:arbitrum, basic_import_options, %{arbitrum_messages: arbitrum_xlevel_messages}) do
-    basic_import_options
-    |> Map.put_new(:arbitrum_messages, %{params: arbitrum_xlevel_messages})
-  end
+        basic_import_options
+        |> Map.put(
+          :tokens,
+          %{params: (tokens ++ celo_gas_tokens) |> Enum.uniq()}
+        )
 
-  defp do_import_options(:zilliqa, basic_import_options, %{
-         zilliqa_quorum_certificates: zilliqa_quorum_certificates,
-         zilliqa_aggregate_quorum_certificates: zilliqa_aggregate_quorum_certificates,
-         zilliqa_nested_quorum_certificates: zilliqa_nested_quorum_certificates
-       }) do
-    basic_import_options
-    |> Map.put_new(:zilliqa_quorum_certificates, %{params: zilliqa_quorum_certificates})
-    |> Map.put_new(:zilliqa_aggregate_quorum_certificates, %{params: zilliqa_aggregate_quorum_certificates})
-    |> Map.put_new(:zilliqa_nested_quorum_certificates, %{params: zilliqa_nested_quorum_certificates})
-  end
+      :arbitrum ->
+        basic_import_options
+        |> Map.put_new(:arbitrum_messages, %{params: arbitrum_xlevel_messages})
 
-  defp do_import_options(_chain_type, basic_import_options, _chain_specific_import_options) do
-    basic_import_options
-  end
-
-  defp extend_with_zilliqa_import_options(chain_type_import_options, fetched_blocks) do
-    chain_type_import_options
-    |> Map.merge(%{
-      zilliqa_quorum_certificates: Map.get(fetched_blocks, :zilliqa_quorum_certificates_params, []),
-      zilliqa_aggregate_quorum_certificates: Map.get(fetched_blocks, :zilliqa_aggregate_quorum_certificates_params, []),
-      zilliqa_nested_quorum_certificates: Map.get(fetched_blocks, :zilliqa_nested_quorum_certificates_params, [])
-    })
+      _ ->
+        basic_import_options
+    end
   end
 
   defp update_block_cache([]), do: :ok
@@ -410,14 +363,6 @@ defmodule Indexer.Block.Fetcher do
 
   defp update_withdrawals_cache(_) do
     :ok
-  end
-
-  defp update_multichain_search_db(%{addresses: addresses, blocks: blocks, transactions: transactions}) do
-    MultichainSearch.batch_import(%{
-      addresses: addresses || [],
-      blocks: blocks || [],
-      transactions: transactions || []
-    })
   end
 
   def import(
@@ -495,15 +440,28 @@ defmodule Indexer.Block.Fetcher do
   def async_import_realtime_coin_balances(_), do: :ok
 
   def async_import_created_contract_codes(%{transactions: transactions}, realtime?) do
-    ContractCode.async_fetch(transactions, realtime?, 10_000)
+    transactions
+    |> Enum.flat_map(fn
+      %Transaction{
+        block_number: block_number,
+        hash: hash,
+        created_contract_address_hash: %Hash{} = created_contract_address_hash,
+        created_contract_code_indexed_at: nil
+      } ->
+        [%{block_number: block_number, hash: hash, created_contract_address_hash: created_contract_address_hash}]
+
+      %Transaction{created_contract_address_hash: nil} ->
+        []
+    end)
+    |> ContractCode.async_fetch(realtime?, 10_000)
   end
 
   def async_import_created_contract_codes(_, _), do: :ok
 
-  def async_import_internal_transactions(%{blocks: blocks, transactions: transactions}, realtime?) do
+  def async_import_internal_transactions(%{blocks: blocks}, realtime?) do
     blocks
     |> Enum.map(fn %Block{number: block_number} -> block_number end)
-    |> InternalTransaction.async_fetch(transactions, realtime?, 10_000)
+    |> InternalTransaction.async_fetch(realtime?, 10_000)
   end
 
   def async_import_internal_transactions(_, _), do: :ok

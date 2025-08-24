@@ -284,7 +284,7 @@ if ($addressDetailsPage.length) {
   })
   connectElements({ store, elements })
 
-  const addressChannel = subscribeChannel(`addresses_old:${addressHash}`)
+  const addressChannel = subscribeChannel(`addresses:${addressHash}`)
 
   addressChannel.onError(() => store.dispatch({
     type: 'CHANNEL_DISCONNECTED'
@@ -318,7 +318,7 @@ if ($addressDetailsPage.length) {
     store.dispatch({ type: 'RECEIVED_CHANGED_BYTECODE_EVENT' })
   })
 
-  const blocksChannel = socket.channel(`blocks_old:${addressHash}`, {})
+  const blocksChannel = socket.channel(`blocks:${addressHash}`, {})
   blocksChannel.join()
   blocksChannel.onError(() => store.dispatch({
     type: 'CHANNEL_DISCONNECTED'

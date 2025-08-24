@@ -1,7 +1,8 @@
 defmodule BlockScoutWeb.API.V2.MainPageControllerTest do
   use BlockScoutWeb.ConnCase
 
-  alias Explorer.Account.{Identity, WatchlistAddress}
+  alias BlockScoutWeb.Models.UserFromAuth
+  alias Explorer.Account.WatchlistAddress
   alias Explorer.Chain.{Address, Block, Transaction}
   alias Explorer.Repo
 
@@ -64,7 +65,7 @@ defmodule BlockScoutWeb.API.V2.MainPageControllerTest do
       insert_list(10, :transaction) |> with_block()
 
       auth = build(:auth)
-      {:ok, user} = Identity.find_or_create(auth)
+      {:ok, user} = UserFromAuth.find_or_create(auth)
 
       conn = Plug.Test.init_test_session(conn, current_user: user)
 

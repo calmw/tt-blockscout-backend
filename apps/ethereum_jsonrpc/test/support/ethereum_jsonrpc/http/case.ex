@@ -9,7 +9,7 @@ defmodule EthereumJSONRPC.HTTP.Case do
         transport: EthereumJSONRPC.HTTP,
         transport_options: [
           http: http(),
-          urls: [url()],
+          url: url(),
           http_options: http_options()
         ]
       ]

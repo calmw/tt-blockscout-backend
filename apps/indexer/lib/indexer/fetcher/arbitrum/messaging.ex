@@ -9,18 +9,27 @@ defmodule Indexer.Fetcher.Arbitrum.Messaging do
   """
 
   import EthereumJSONRPC, only: [quantity_to_integer: 1]
-  alias EthereumJSONRPC.Arbitrum, as: ArbitrumRpc
-  alias EthereumJSONRPC.Arbitrum.Constants.Events, as: ArbitrumEvents
+
+  import Explorer.Helper, only: [decode_data: 2]
 
   import Indexer.Fetcher.Arbitrum.Utils.Logging, only: [log_info: 1, log_debug: 1]
 
   alias Explorer.Chain
   alias Explorer.Chain.Arbitrum.Message
-  alias Indexer.Fetcher.Arbitrum.Utils.Db.Messages, as: DbMessages
-  alias Indexer.Fetcher.Arbitrum.Utils.Db.Settlement, as: DbSettlement
+  alias Indexer.Fetcher.Arbitrum.Utils.Db
+
   require Logger
 
   @zero_hex_prefix "0x" <> String.duplicate("0", 56)
+
+  @l2_to_l1_event_unindexed_params [
+    :address,
+    {:uint, 256},
+    {:uint, 256},
+    {:uint, 256},
+    {:uint, 256},
+    :bytes
+  ]
 
   @typep min_transaction :: %{
            :hash => binary(),
@@ -118,7 +127,7 @@ defmodule Indexer.Fetcher.Arbitrum.Messaging do
     filtered_logs =
       logs
       |> Enum.filter(fn event ->
-        event.address_hash == arbsys_contract and event.first_topic == ArbitrumEvents.l2_to_l1()
+        event.address_hash == arbsys_contract and event.first_topic == Db.l2_to_l1_event()
       end)
 
     handle_filtered_l2_to_l1_messages(filtered_logs)
@@ -184,33 +193,31 @@ defmodule Indexer.Fetcher.Arbitrum.Messaging do
 
   def handle_filtered_l2_to_l1_messages(filtered_logs, caller) when is_list(filtered_logs) do
     # Get values before the loop parsing the events to reduce number of DB requests
-    highest_committed_block = DbSettlement.highest_committed_block(-1)
-    highest_confirmed_block = DbSettlement.highest_confirmed_block(-1)
+    highest_committed_block = Db.highest_committed_block(-1)
+    highest_confirmed_block = Db.highest_confirmed_block(-1)
 
     messages_map =
       filtered_logs
       |> Enum.reduce(%{}, fn event, messages_acc ->
         log_debug("L2 to L1 message #{event.transaction_hash} found")
 
-        fields =
-          event
-          |> ArbitrumRpc.l2_to_l1_event_parse()
+        {message_id, caller, blocknum, timestamp} = l2_to_l1_event_parse(event)
 
         message =
           %{
             direction: :from_l2,
-            message_id: fields.message_id,
-            originator_address: fields.caller,
+            message_id: message_id,
+            originator_address: caller,
             originating_transaction_hash: event.transaction_hash,
-            origination_timestamp: Timex.from_unix(fields.timestamp),
-            originating_transaction_block_number: fields.arb_block_number,
-            status: status_l2_to_l1_message(fields.arb_block_number, highest_committed_block, highest_confirmed_block)
+            origination_timestamp: timestamp,
+            originating_transaction_block_number: blocknum,
+            status: status_l2_to_l1_message(blocknum, highest_committed_block, highest_confirmed_block)
           }
           |> complete_to_params()
 
         Map.put(
           messages_acc,
-          fields.message_id,
+          message_id,
           message
         )
       end)
@@ -269,6 +276,23 @@ defmodule Indexer.Fetcher.Arbitrum.Messaging do
     end)
   end
 
+  # Parses an L2-to-L1 event, extracting relevant information from the event's data.
+  @spec l2_to_l1_event_parse(min_log()) :: {non_neg_integer(), binary(), non_neg_integer(), DateTime.t()}
+  defp l2_to_l1_event_parse(event) do
+    [
+      caller,
+      arb_block_num,
+      _eth_block_num,
+      timestamp,
+      _callvalue,
+      _data
+    ] = decode_data(event.data, @l2_to_l1_event_unindexed_params)
+
+    position = quantity_to_integer(event.fourth_topic)
+
+    {position, caller, arb_block_num, Timex.from_unix(timestamp)}
+  end
+
   # Determines the status of an L2-to-L1 message based on its block number and the highest
   # committed and confirmed block numbers.
   @spec status_l2_to_l1_message(non_neg_integer(), non_neg_integer(), non_neg_integer()) ::
@@ -297,7 +321,7 @@ defmodule Indexer.Fetcher.Arbitrum.Messaging do
   defp find_and_update_executed_messages(messages) do
     messages
     |> Map.keys()
-    |> DbMessages.l1_executions()
+    |> Db.l1_executions()
     |> Enum.reduce(messages, fn execution, messages_acc ->
       message =
         messages_acc

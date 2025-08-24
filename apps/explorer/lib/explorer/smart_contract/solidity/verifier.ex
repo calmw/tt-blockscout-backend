@@ -15,8 +15,6 @@ defmodule Explorer.SmartContract.Solidity.Verifier do
       prepare_bytecode_for_microservice: 3
     ]
 
-  import Explorer.Helper, only: [parse_boolean: 1]
-
   alias ABI.{FunctionSelector, TypeDecoder}
   alias Explorer.Chain
   alias Explorer.Chain.{Data, Hash, SmartContract}
@@ -131,18 +129,17 @@ defmodule Explorer.SmartContract.Solidity.Verifier do
   def evaluate_authenticity_via_standard_json_input_inner(true, address_hash, params, json_input) do
     {creation_transaction_input, deployed_bytecode, verifier_metadata} = fetch_data_for_verification(address_hash)
 
-    verification_params =
+    compiler_version_map =
       if Application.get_env(:explorer, :chain_type) == :zksync do
         %{
           "solcCompiler" => params["compiler_version"],
-          "zkCompiler" => params["zk_compiler_version"],
-          "constructorArguments" => params["constructor_arguments"]
+          "zkCompiler" => params["zk_compiler_version"]
         }
       else
         %{"compilerVersion" => params["compiler_version"]}
       end
 
-    verification_params
+    compiler_version_map
     |> prepare_bytecode_for_microservice(creation_transaction_input, deployed_bytecode)
     |> Map.put("input", json_input)
     |> (&if(Application.get_env(:explorer, :chain_type) == :zksync,
@@ -553,6 +550,14 @@ defmodule Explorer.SmartContract.Solidity.Verifier do
   defp has_constructor_with_params?(abi) do
     Enum.any?(abi, fn el -> el["type"] == "constructor" && el["inputs"] != [] end)
   end
+
+  def parse_boolean("true"), do: true
+  def parse_boolean("false"), do: false
+
+  def parse_boolean(true), do: true
+  def parse_boolean(false), do: false
+
+  def parse_boolean(_), do: false
 
   @doc """
     Function tries to parse constructor args from smart contract creation input.

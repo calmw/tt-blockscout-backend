@@ -8,7 +8,6 @@ defmodule Explorer.Chain.Celo.EpochReward do
 
   import Ecto.Query, only: [from: 2]
   import Explorer.Chain, only: [select_repo: 1]
-  import Explorer.Chain.SmartContract.Proxy.Models.Implementation, only: [proxy_implementations_association: 0]
 
   alias Explorer.Chain.Celo.EpochReward
   alias Explorer.Chain.{Block, Hash, TokenTransfer}
@@ -102,8 +101,8 @@ defmodule Explorer.Chain.Celo.EpochReward do
         select: {tt.log_index, tt},
         preload: [
           :token,
-          [from_address: [:scam_badge, :names, :smart_contract, ^proxy_implementations_association()]],
-          [to_address: [:scam_badge, :names, :smart_contract, ^proxy_implementations_association()]]
+          [from_address: [:scam_badge, :names, :smart_contract, :proxy_implementations]],
+          [to_address: [:scam_badge, :names, :smart_contract, :proxy_implementations]]
         ]
       )
 

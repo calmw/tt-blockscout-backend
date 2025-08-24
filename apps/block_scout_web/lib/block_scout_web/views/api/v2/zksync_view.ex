@@ -15,19 +15,15 @@ defmodule BlockScoutWeb.API.V2.ZkSyncView do
       "number" => batch.number,
       "timestamp" => batch.timestamp,
       "root_hash" => batch.root_hash,
-      "l1_transactions_count" => batch.l1_transaction_count,
-      # todo: It should be removed in favour `l1_transactions_count` property with the next release after 8.0.0
       "l1_transaction_count" => batch.l1_transaction_count,
-      "l2_transactions_count" => batch.l2_transaction_count,
-      # todo: It should be removed in favour `l2_transactions_count` property with the next release after 8.0.0
       "l2_transaction_count" => batch.l2_transaction_count,
+      # todo: keep next line for compatibility with frontend and remove when new frontend is bound to `l1_transaction_count` property
+      "l1_tx_count" => batch.l1_transaction_count,
+      # todo: keep next line for compatibility with frontend and remove when new frontend is bound to `l2_transaction_count` property
+      "l2_tx_count" => batch.l2_transaction_count,
       "l1_gas_price" => batch.l1_gas_price,
       "l2_fair_gas_price" => batch.l2_fair_gas_price,
-      "start_block_number" => batch.start_block,
-      "end_block_number" => batch.end_block,
-      # todo: It should be removed in favour `start_block_number` property with the next release after 8.0.0
       "start_block" => batch.start_block,
-      # todo: It should be removed in favour `end_block_number` property with the next release after 8.0.0
       "end_block" => batch.end_block
     }
     |> add_l1_transactions_info_and_status(batch)
@@ -72,8 +68,8 @@ defmodule BlockScoutWeb.API.V2.ZkSyncView do
       %{
         "number" => batch.number,
         "timestamp" => batch.timestamp,
-        "transactions_count" => batch.l1_transaction_count + batch.l2_transaction_count,
-        # todo: It should be removed in favour `transactions_count` property with the next release after 8.0.0
+        # todo: keep next line for compatibility with frontend and remove when new frontend is bound to `transaction_count` property
+        "tx_count" => batch.l1_transaction_count + batch.l2_transaction_count,
         "transaction_count" => batch.l1_transaction_count + batch.l2_transaction_count
       }
       |> add_l1_transactions_info_and_status(batch)
@@ -82,7 +78,7 @@ defmodule BlockScoutWeb.API.V2.ZkSyncView do
 
   @doc """
     Extends the json output with a sub-map containing information related
-    zksync: batch number and associated L1 transactions and their timestamps.
+    zksync: batch number and associated L1 transactions and their timestmaps.
 
     ## Parameters
     - `out_json`: a map defining output json which will be extended
@@ -93,10 +89,10 @@ defmodule BlockScoutWeb.API.V2.ZkSyncView do
   """
   @spec extend_transaction_json_response(map(), %{
           :__struct__ => Explorer.Chain.Transaction,
-          optional(:zksync_batch) => any(),
-          optional(:zksync_commit_transaction) => any(),
-          optional(:zksync_execute_transaction) => any(),
-          optional(:zksync_prove_transaction) => any(),
+          :zksync_batch => any(),
+          :zksync_commit_transaction => any(),
+          :zksync_execute_transaction => any(),
+          :zksync_prove_transaction => any(),
           optional(any()) => any()
         }) :: map()
   def extend_transaction_json_response(out_json, %Transaction{} = transaction) do
@@ -105,7 +101,7 @@ defmodule BlockScoutWeb.API.V2.ZkSyncView do
 
   @doc """
     Extends the json output with a sub-map containing information related
-    zksync: batch number and associated L1 transactions and their timestamps.
+    zksync: batch number and associated L1 transactions and their timestmaps.
 
     ## Parameters
     - `out_json`: a map defining output json which will be extended
@@ -116,10 +112,10 @@ defmodule BlockScoutWeb.API.V2.ZkSyncView do
   """
   @spec extend_block_json_response(map(), %{
           :__struct__ => Explorer.Chain.Block,
-          optional(:zksync_batch) => any(),
-          optional(:zksync_commit_transaction) => any(),
-          optional(:zksync_execute_transaction) => any(),
-          optional(:zksync_prove_transaction) => any(),
+          :zksync_batch => any(),
+          :zksync_commit_transaction => any(),
+          :zksync_execute_transaction => any(),
+          :zksync_prove_transaction => any(),
           optional(any()) => any()
         }) :: map()
   def extend_block_json_response(out_json, %Block{} = block) do

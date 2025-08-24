@@ -46,9 +46,7 @@ defmodule Explorer.Migrator.SanitizeIncorrectWETHTokenTransfersTest do
       Application.put_env(
         :explorer,
         Explorer.Chain.TokenTransfer,
-        env
-        |> Keyword.put(:whitelisted_weth_contracts, [whitelisted_token_address |> to_string() |> String.downcase()])
-        |> Keyword.put(:weth_token_transfers_filtering_enabled, true)
+        Keyword.put(env, :whitelisted_weth_contracts, [whitelisted_token_address |> to_string() |> String.downcase()])
       )
 
       withdrawal_log = insert(:log, first_topic: TokenTransfer.weth_withdrawal_signature())
@@ -71,8 +69,7 @@ defmodule Explorer.Migrator.SanitizeIncorrectWETHTokenTransfersTest do
         log_index: deposit_log.index
       )
 
-      withdrawal_log_duplicate =
-        insert(:log, first_topic: TokenTransfer.weth_withdrawal_signature(), address: whitelisted_token_address)
+      withdrawal_log_duplicate = insert(:log, first_topic: TokenTransfer.weth_withdrawal_signature())
 
       tt_withdrawal =
         insert(:token_transfer,
@@ -83,21 +80,13 @@ defmodule Explorer.Migrator.SanitizeIncorrectWETHTokenTransfersTest do
           log_index: withdrawal_log_duplicate.index
         )
 
-      withdrawal_log_duplicate_original =
-        insert(:log,
-          first_topic: TokenTransfer.constant(),
-          address: whitelisted_token_address,
-          transaction: withdrawal_log_duplicate.transaction,
-          block: withdrawal_log_duplicate.block
-        )
-
       insert(:token_transfer,
         from_address: burn_address,
         to_address: tt_withdrawal.to_address,
         token_contract_address: whitelisted_token_address,
-        block: withdrawal_log_duplicate_original.block,
-        transaction: withdrawal_log_duplicate_original.transaction,
-        log_index: withdrawal_log_duplicate_original.index,
+        block: withdrawal_log_duplicate.block,
+        transaction: withdrawal_log_duplicate.transaction,
+        log_index: withdrawal_log_duplicate.index + 1,
         amount: tt_withdrawal.amount
       )
 
@@ -112,21 +101,13 @@ defmodule Explorer.Migrator.SanitizeIncorrectWETHTokenTransfersTest do
           log_index: deposit_log_duplicate.index
         )
 
-      deposit_log_duplicate_original =
-        insert(:log,
-          first_topic: TokenTransfer.constant(),
-          address: whitelisted_token_address,
-          transaction: deposit_log_duplicate.transaction,
-          block: deposit_log_duplicate.block
-        )
-
       insert(:token_transfer,
         from_address: tt_deposit.from_address,
         to_address: burn_address,
         token_contract_address: whitelisted_token_address,
-        block: deposit_log_duplicate_original.block,
-        transaction: deposit_log_duplicate_original.transaction,
-        log_index: deposit_log_duplicate_original.index,
+        block: deposit_log_duplicate.block,
+        transaction: deposit_log_duplicate.transaction,
+        log_index: deposit_log_duplicate.index + 1,
         amount: tt_deposit.amount
       )
 
@@ -134,8 +115,7 @@ defmodule Explorer.Migrator.SanitizeIncorrectWETHTokenTransfersTest do
 
       Application.put_env(:explorer, Explorer.Migrator.SanitizeIncorrectWETHTokenTransfers,
         batch_size: 1,
-        concurrency: 1,
-        timeout: 0
+        concurrency: 1
       )
 
       SanitizeIncorrectWETHTokenTransfers.start_link([])
@@ -169,11 +149,11 @@ defmodule Explorer.Migrator.SanitizeIncorrectWETHTokenTransfersTest do
 
       assert withdrawal_analogue.block_hash == withdrawal_log_duplicate.block_hash
       assert withdrawal_analogue.transaction_hash == withdrawal_log_duplicate.transaction_hash
-      assert withdrawal_analogue.log_index == withdrawal_log_duplicate_original.index
+      assert withdrawal_analogue.log_index == withdrawal_log_duplicate.index + 1
 
       assert deposit_analogue.block_hash == deposit_log_duplicate.block_hash
       assert deposit_analogue.transaction_hash == deposit_log_duplicate.transaction_hash
-      assert deposit_analogue.log_index == deposit_log_duplicate_original.index
+      assert deposit_analogue.log_index == deposit_log_duplicate.index + 1
 
       Application.put_env(:explorer, Explorer.Chain.TokenTransfer, env)
     end

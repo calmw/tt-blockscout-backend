@@ -5,14 +5,21 @@ defmodule Explorer.Chain.Celo.Reader do
 
   import Ecto.Query, only: [limit: 2]
 
-  alias Explorer.Chain
+  import Explorer.Chain,
+    only: [
+      select_repo: 1,
+      join_associations: 2,
+      default_paging_options: 0,
+      max_consensus_block_number: 1
+    ]
+
   alias Explorer.Chain.Block
   alias Explorer.Chain.Cache.{Blocks, CeloCoreContracts}
   alias Explorer.Chain.Celo.{ElectionReward, Helper}
   alias Explorer.Chain.{Hash, Token, Wei}
 
   @election_reward_types ElectionReward.types()
-  @default_paging_options Chain.default_paging_options()
+  @default_paging_options default_paging_options()
 
   @doc """
   Retrieves election rewards associated with a given address hash.
@@ -43,17 +50,13 @@ defmodule Explorer.Chain.Celo.Reader do
     necessity_by_association = Keyword.get(options, :necessity_by_association, %{})
     paging_options = Keyword.get(options, :paging_options, @default_paging_options)
 
-    from_block = Chain.from_block(options)
-    to_block = Chain.to_block(options)
-
     address_hash
     |> ElectionReward.address_hash_to_ordered_rewards_query()
-    |> ElectionReward.where_block_number_in_period(from_block, to_block)
     |> ElectionReward.join_token()
     |> ElectionReward.paginate(paging_options)
     |> limit(^paging_options.page_size)
-    |> Chain.join_associations(necessity_by_association)
-    |> Chain.select_repo(options).all()
+    |> join_associations(necessity_by_association)
+    |> select_repo(options).all()
   end
 
   @doc """
@@ -91,8 +94,8 @@ defmodule Explorer.Chain.Celo.Reader do
     |> ElectionReward.block_hash_to_rewards_by_type_query(reward_type)
     |> ElectionReward.paginate(paging_options)
     |> limit(^paging_options.page_size)
-    |> Chain.join_associations(necessity_by_association)
-    |> Chain.select_repo(options).all()
+    |> join_associations(necessity_by_association)
+    |> select_repo(options).all()
   end
 
   @doc """
@@ -129,7 +132,7 @@ defmodule Explorer.Chain.Celo.Reader do
     reward_type_to_aggregated_rewards =
       block_hash
       |> ElectionReward.block_hash_to_aggregated_rewards_by_type_query()
-      |> Chain.select_repo(options).all()
+      |> select_repo(options).all()
       |> Map.new(fn {type, total, count} ->
         {type, %{total: total, count: count}}
       end)
@@ -201,7 +204,7 @@ defmodule Explorer.Chain.Celo.Reader do
       |> Blocks.atomic_take_enough()
       |> case do
         [%Block{number: number}] -> {:ok, number}
-        nil -> Chain.max_consensus_block_number(options)
+        nil -> max_consensus_block_number(options)
       end
       |> case do
         {:ok, number} -> number

@@ -14,7 +14,6 @@ defmodule Indexer.Fetcher.PolygonZkevm.TransactionBatch do
   alias Explorer.Chain.Events.Publisher
   alias Explorer.Chain.PolygonZkevm.Reader
   alias Indexer.Helper
-  alias Indexer.Prometheus.Instrumenter
 
   @zero_hash "0000000000000000000000000000000000000000000000000000000000000000"
 
@@ -214,7 +213,8 @@ defmodule Indexer.Fetcher.PolygonZkevm.TransactionBatch do
       responses
       |> Enum.reduce({[], [], [], Reader.next_id(), hash_to_id}, fn res,
                                                                     {batches, l2_transactions, l1_transactions, next_id,
-                                                                     hash_to_id} = _acc ->
+                                                                     hash_to_id} =
+                                                                      _acc ->
         number = quantity_to_integer(Map.get(res.result, "number"))
 
         # the timestamp is undefined for unfinalized batches
@@ -274,14 +274,6 @@ defmodule Indexer.Fetcher.PolygonZkevm.TransactionBatch do
         polygon_zkevm_batch_transactions: %{params: l2_transactions_to_import},
         timeout: :infinity
       })
-
-    last_batch =
-      batches_to_import
-      |> Enum.max_by(& &1.number, fn -> nil end)
-
-    if last_batch do
-      Instrumenter.set_latest_batch(last_batch.number, last_batch.timestamp)
-    end
 
     confirmed_batches =
       Enum.filter(batches_to_import, fn batch -> not is_nil(batch.sequence_id) and batch.sequence_id > 0 end)

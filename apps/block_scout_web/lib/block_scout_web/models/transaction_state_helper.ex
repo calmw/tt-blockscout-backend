@@ -5,7 +5,6 @@ defmodule BlockScoutWeb.Models.TransactionStateHelper do
 
   import Explorer.PagingOptions, only: [default_paging_options: 0]
   import Explorer.Chain.SmartContract, only: [burn_address_hash_string: 0]
-  import Explorer.Chain.SmartContract.Proxy.Models.Implementation, only: [proxy_implementations_association: 0]
 
   alias Explorer.Chain.Transaction.StateChange
   alias Explorer.{Chain, PagingOptions, Repo}
@@ -70,16 +69,16 @@ defmodule BlockScoutWeb.Models.TransactionStateHelper do
       |> Enum.find(&(&1.hash == transaction.hash))
       |> Repo.preload(
         token_transfers: [
-          from_address: [:scam_badge, :names, :smart_contract, proxy_implementations_association()],
-          to_address: [:scam_badge, :names, :smart_contract, proxy_implementations_association()]
+          from_address: [:scam_badge, :names, :smart_contract, :proxy_implementations],
+          to_address: [:scam_badge, :names, :smart_contract, :proxy_implementations]
         ],
         internal_transactions: [
-          from_address: [:scam_badge, :names, :smart_contract, proxy_implementations_association()],
-          to_address: [:scam_badge, :names, :smart_contract, proxy_implementations_association()]
+          from_address: [:scam_badge, :names, :smart_contract, :proxy_implementations],
+          to_address: [:scam_badge, :names, :smart_contract, :proxy_implementations]
         ],
-        block: [miner: [:names, :smart_contract, proxy_implementations_association()]],
-        from_address: [:scam_badge, :names, :smart_contract, proxy_implementations_association()],
-        to_address: [:scam_badge, :names, :smart_contract, proxy_implementations_association()]
+        block: [miner: [:names, :smart_contract, :proxy_implementations]],
+        from_address: [:names, :smart_contract, :proxy_implementations],
+        to_address: [:scam_badge, :names, :smart_contract, :proxy_implementations]
       )
 
     previous_block_number = BlockNumberHelper.previous_block_number(transaction.block_number)
@@ -144,7 +143,7 @@ defmodule BlockScoutWeb.Models.TransactionStateHelper do
         val
 
       _ ->
-        CoinBalanceOnDemand.trigger_historic_fetch(options[:ip], address_hash, block_number)
+        CoinBalanceOnDemand.trigger_historic_fetch(address_hash, block_number)
         %Wei{value: Decimal.new(0)}
     end
   end
@@ -173,7 +172,6 @@ defmodule BlockScoutWeb.Models.TransactionStateHelper do
 
       _ ->
         TokenBalanceOnDemand.trigger_historic_fetch(
-          options[:ip],
           address_hash,
           token.contract_address_hash,
           token.type,

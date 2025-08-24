@@ -11,7 +11,6 @@ defmodule Explorer.Chain.Address.MetadataPreloader do
     Block,
     InternalTransaction,
     Log,
-    Token.Instance,
     TokenTransfer,
     Transaction,
     Withdrawal
@@ -69,7 +68,6 @@ defmodule Explorer.Chain.Address.MetadataPreloader do
       |> Enum.reduce([], fn item, acc ->
         item_to_address_hash_strings(item) ++ acc
       end)
-      |> Enum.filter(&(&1 != ""))
       |> Enum.uniq()
 
     case BENS.ens_names_batch_request(address_hash_strings) do
@@ -88,8 +86,9 @@ defmodule Explorer.Chain.Address.MetadataPreloader do
   def preload_metadata_to_list(items) do
     address_hash_strings =
       items
-      |> Enum.flat_map(&item_to_address_hash_strings/1)
-      |> Enum.filter(&(&1 != ""))
+      |> Enum.reduce([], fn item, acc ->
+        item_to_address_hash_strings(item) ++ acc
+      end)
       |> Enum.uniq()
 
     case Metadata.get_addresses_tags(address_hash_strings) do
@@ -180,12 +179,12 @@ defmodule Explorer.Chain.Address.MetadataPreloader do
     [to_string(address_hash)]
   end
 
-  defp item_to_address_hash_strings(%Address{hash: hash}) do
-    [to_string(hash)]
+  defp item_to_address_hash_strings({%Address{} = address, _}) do
+    item_to_address_hash_strings(address)
   end
 
-  defp item_to_address_hash_strings(%Instance{owner_address_hash: owner_address_hash}) do
-    [to_string(owner_address_hash)]
+  defp item_to_address_hash_strings(%Address{hash: hash}) do
+    [to_string(hash)]
   end
 
   defp put_ens_names(names, items) do
@@ -280,16 +279,12 @@ defmodule Explorer.Chain.Address.MetadataPreloader do
     }
   end
 
-  defp put_meta_to_item(%Address{} = address, names, field_to_put_info) do
-    alter_address(address, address.hash, names, field_to_put_info)
+  defp put_meta_to_item({%Address{} = address, count}, names, field_to_put_info) do
+    {put_meta_to_item(address, names, field_to_put_info), count}
   end
 
-  defp put_meta_to_item(
-         %Instance{owner: owner_address, owner_address_hash: owner_address_hash} = instance,
-         names,
-         field_to_put_info
-       ) do
-    %Instance{instance | owner: alter_address(owner_address, owner_address_hash, names, field_to_put_info)}
+  defp put_meta_to_item(%Address{} = address, names, field_to_put_info) do
+    alter_address(address, address.hash, names, field_to_put_info)
   end
 
   defp alter_address(address, nil, _names, _field), do: address
