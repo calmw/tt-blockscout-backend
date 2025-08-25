@@ -7,7 +7,8 @@ services:
 #    image: blockscout/blockscout:5.2.3.commit.f89f344e
 #    image: blockscout/blockscout:6.8.1.commit.1b1d3402
     image: blockscout-backend-dev:local
-#    pull_policy: always
+    working_dir: /app
+    #    pull_policy: always
     restart: always
     stop_grace_period: 5m
     container_name: 'backend'
