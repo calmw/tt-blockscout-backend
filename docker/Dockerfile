@@ -17,7 +17,9 @@ COPY apps/nft_media_handler/mix.exs ./apps/nft_media_handler/
 ENV MIX_ENV="prod"
 ENV MIX_HOME=/opt/mix
 RUN mix local.hex --force
-RUN mix do deps.get, local.rebar --force, deps.compile --skip-umbrella-children
+RUN apk add --no-cache git
+#RUN #mix do deps.get, local.rebar --force, deps.compile --skip-umbrella-children
+RUN mix do deps.get, local.rebar --force, deps.compile
 
 COPY config ./config
 COPY rel ./rel
