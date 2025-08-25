@@ -15,6 +15,7 @@ services:
     env_file:
       -  ../envs/common-blockscout.env
     volumes:
+      - /data/tt-blockscout-backend/config/config_helper.exs:/app/releases/6.8.1/config_helper.exs
       - ./logs/:/app/logs/
       - ./dets/:/app/dets/
     logging:
