@@ -44,6 +44,7 @@ ARG API_GRAPHQL_MAX_COMPLEXITY
 ENV API_GRAPHQL_MAX_COMPLEXITY=${API_GRAPHQL_MAX_COMPLEXITY}
 
 # Run backend compilation
+RUN apk add --no-cache git
 RUN mix compile
 
 RUN mkdir -p /opt/release && \
