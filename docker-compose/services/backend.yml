@@ -10,12 +10,7 @@ services:
     restart: always
     stop_grace_period: 5m
     container_name: 'backend'
-#    command: sh -c "bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start"
-#    command: sh -c "mix do deps.get, compile && mix phx.server"
-#    command: sh -c "bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start"
-#    command: sh -c "./blockscout/bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && ./blockscout/bin/blockscout start"
-#    command: sh -c "mix do deps.get, compile && mix phx.server"
-    command: sh -c "./bin/blockscout eval 'Elixir.Explorer.ReleaseTasks.create_and_migrate()' && ./bin/blockscout start"
+    command: sh -c "bin/blockscout eval \"Elixir.Explorer.ReleaseTasks.create_and_migrate()\" && bin/blockscout start"
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     env_file:
