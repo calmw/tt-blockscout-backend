@@ -20,7 +20,7 @@ services:
     env_file:
       -  ../envs/common-blockscout.env
     volumes:
-      - ../blockscout:/app
+      - /data/tt-blockscout-backend:/app
       - ./logs/:/app/logs/
       - ./dets/:/app/dets/
     logging:
