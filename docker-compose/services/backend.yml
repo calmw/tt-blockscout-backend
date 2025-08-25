@@ -15,3 +15,4 @@ services:
       -  ../envs/common-blockscout.env
     volumes:
       - ./logs/:/app/logs/
+      - ./config/config_helper.exs:/app/releases/config_helper.exs
