@@ -44,7 +44,8 @@ defmodule BlockScoutWeb.AddressController do
 
     exchange_rate = Market.get_coin_exchange_rate()
 #    total_supply = Chain.total_supply()
-    total_supply = Explorer.Chain.Supply.ProofOfAuthority.total()
+#    total_supply = Explorer.Chain.Supply.ProofOfAuthority.total()
+    total_supply = Decimal.new("120000000000000000000000000")
 
     items_count_str = Map.get(params, "items_count")
 
