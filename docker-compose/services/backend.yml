@@ -2,7 +2,6 @@ version: '3.9'
 
 services:
   backend:
-#    image: blockscout/${DOCKER_REPO:-blockscout}:${DOCKER_TAG:-latest}
 #    image: blockscout/blockscout:6.8.1.commit.1b1d3402
     image: blockscout-backend-dev:local
     working_dir: /app
@@ -16,8 +15,6 @@ services:
     env_file:
       -  ../envs/common-blockscout.env
     volumes:
-#      - /data/tt-blockscout-backend:/app:rw
-#      - /data/tt-blockscout-backend/docker-compose/services/config/config_helper.exs:/app/releases/6.8.1/config_helper.exs
       - ./logs/:/app/logs/
       - ./dets/:/app/dets/
     logging:
