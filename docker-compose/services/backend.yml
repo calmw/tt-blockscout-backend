@@ -6,7 +6,7 @@ services:
     #    image: blockscout-backend-dev:local
     image: harbor.devops.tantin.com/web/blockscout-backend:20250826
     working_dir: /app
-    #    pull_policy: always
+    pull_policy: always
     restart: always
     stop_grace_period: 5m
     container_name: 'backend'
