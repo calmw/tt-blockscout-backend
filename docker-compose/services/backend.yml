@@ -2,8 +2,9 @@ version: '3.9'
 
 services:
   backend:
-#    image: blockscout/blockscout:6.8.1.commit.1b1d3402
-    image: blockscout-backend-dev:local
+    #    image: blockscout/blockscout:6.8.1.commit.1b1d3402
+    #    image: blockscout-backend-dev:local
+    image: harbor.devops.tantin.com/web/blockscout-backend:20250826
     working_dir: /app
     #    pull_policy: always
     restart: always
@@ -13,7 +14,7 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     env_file:
-      -  ../envs/common-blockscout.env
+      - ../envs/common-blockscout.env
     volumes:
       - /data/tt-blockscout-backend/config/config_helper.exs:/app/releases/6.8.1/config_helper.exs
       - ./logs/:/app/logs/
