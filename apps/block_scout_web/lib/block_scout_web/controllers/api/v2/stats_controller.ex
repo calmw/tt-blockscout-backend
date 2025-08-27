@@ -67,7 +67,7 @@ defmodule BlockScoutWeb.API.V2.StatsController do
           require Logger
           Logger.error(fn -> "TTX API coin_price fetch failed: #{inspect(reason)}" end)
           # fallback：用原来的 Market.get_coin_exchange_rate()
-          exchange_rate = Market.get_coin_exchange_rate()
+#          exchange_rate = Market.get_coin_exchange_rate()
           exchange_rate.usd_value
       end
 
