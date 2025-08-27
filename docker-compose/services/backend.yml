@@ -3,8 +3,8 @@ version: '3.9'
 services:
   backend:
 #    image: blockscout/${DOCKER_REPO:-blockscout}:${DOCKER_TAG:-latest}
-#    image: blockscout/blockscout:6.8.1.commit.1b1d3402
-    image: harbor.devops.tantin.com/web/blockscout-backend:20250826
+    image: blockscout/blockscout:6.8.1.commit.1b1d3402
+#    image: harbor.devops.tantin.com/web/blockscout-backend:20250826
     pull_policy: always
     restart: always
     stop_grace_period: 5m
