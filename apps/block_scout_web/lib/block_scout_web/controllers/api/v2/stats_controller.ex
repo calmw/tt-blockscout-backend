@@ -101,7 +101,7 @@ defmodule BlockScoutWeb.API.V2.StatsController do
   ###
   defp fetch_coin_price_from_ttx() do
     url = "https://api.ttx.com/v1/coin-price"  # 这里换成 TTX 实际的 API 地址
-    headers = [{"accept", "application/json"}]
+    headers = [{"accept", "application/json"},{"exch-id","1"}]
 
     case HTTPoison.get(url, headers, recv_timeout: 5000) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
