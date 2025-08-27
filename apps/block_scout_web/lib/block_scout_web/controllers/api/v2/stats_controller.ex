@@ -63,7 +63,9 @@ defmodule BlockScoutWeb.API.V2.StatsController do
         {:ok, price} ->
           price
         {:error, reason} ->
-          Logger.error("TTX API coin_price fetch failed: #{inspect(reason)}")
+#          Logger.error("TTX API coin_price fetch failed: #{inspect(reason)}")
+          require Logger
+          Logger.error(fn -> "TTX API coin_price fetch failed: #{inspect(reason)}" end)
           # fallback 回原来的逻辑
           %{usd_value: price} = Helper.market_cap_and_price()
           price
