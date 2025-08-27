@@ -57,6 +57,18 @@ defmodule BlockScoutWeb.API.V2.StatsController do
 
     gas_price = Application.get_env(:block_scout_web, :gas_price)
 
+    # ========== 新增：尝试从 TTX API 获取价格 ==========
+    coin_price =
+      case fetch_coin_price_from_ttx() do
+        {:ok, price} ->
+          price
+        {:error, reason} ->
+          Logger.error("TTX API coin_price fetch failed: #{inspect(reason)}")
+          # fallback 回原来的逻辑
+          %{usd_value: price} = Helper.market_cap_and_price()
+          price
+      end
+
     json(
       conn,
       %{
@@ -66,7 +78,8 @@ defmodule BlockScoutWeb.API.V2.StatsController do
         "average_block_time" => AverageBlockTime.average_block_time() |> Duration.to_milliseconds(),
         "coin_image" => exchange_rate.image_url,
         "secondary_coin_image" => secondary_coin_exchange_rate.image_url,
-        "coin_price" => exchange_rate.usd_value,
+#        "coin_price" => exchange_rate.usd_value,
+        "coin_price" => coin_price,
         "coin_price_change_percentage" => coin_price_change,
         "secondary_coin_price" => secondary_coin_exchange_rate.usd_value,
         "total_gas_used" => GasUsage.total() |> to_string(),
@@ -85,6 +98,28 @@ defmodule BlockScoutWeb.API.V2.StatsController do
     )
   end
 
+  ###
+  defp fetch_coin_price_from_ttx() do
+    url = "https://api.ttx.com/v1/coin-price"  # 这里换成 TTX 实际的 API 地址
+    headers = [{"accept", "application/json"}]
+
+    case HTTPoison.get(url, headers, recv_timeout: 5000) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        case Jason.decode(body) do
+          {:ok, %{"price" => price}} -> {:ok, price}
+          {:ok, data} -> {:error, {:unexpected_format, data}}
+          error -> error
+        end
+
+      {:ok, %HTTPoison.Response{status_code: code, body: body}} ->
+        {:error, {:http_error, code, body}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  ###
   defp network_utilization_percentage do
     {gas_used, gas_limit} =
       Enum.reduce(Chain.list_blocks(), {Decimal.new(0), Decimal.new(0)}, fn block, {gas_used, gas_limit} ->
