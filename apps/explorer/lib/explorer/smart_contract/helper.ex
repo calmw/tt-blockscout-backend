@@ -7,13 +7,12 @@ defmodule Explorer.SmartContract.Helper do
   alias Explorer.Chain.{Address, Hash, SmartContract}
   alias Explorer.Chain.SmartContract.Proxy
   alias Explorer.Chain.SmartContract.Proxy.Models.Implementation
-  alias Explorer.Helper, as: ExplorerHelper
-  alias Explorer.SmartContract.{Reader, Writer}
+  alias Explorer.SmartContract.Writer
   alias Phoenix.HTML
 
   @api_true [api?: true]
 
-  def queryable_method?(method) do
+  def queriable_method?(method) do
     method["constant"] || method["stateMutability"] == "view" || method["stateMutability"] == "pure"
   end
 
@@ -24,7 +23,7 @@ defmodule Explorer.SmartContract.Helper do
   def error?(function), do: function["type"] == "error"
 
   @doc """
-    Checks whether the function which is not queryable can be considered as read
+    Checks whether the function which is not queriable can be considered as read
     function or not.
   """
   @spec read_with_wallet_method?(%{}) :: true | false
@@ -113,23 +112,9 @@ defmodule Explorer.SmartContract.Helper do
     end
   end
 
-  @doc """
-  Prepares the bytecode for a microservice by processing the given body, creation input, and deployed bytecode.
-
-  ## Parameters
-
-    - body: The body of the request or data to be processed.
-    - creation_input: The input data used during the creation of the smart contract.
-    - deployed_bytecode: The bytecode of the deployed smart contract.
-
-  ## Returns
-
-  The processed bytecode ready for the microservice.
-  """
-  @spec prepare_bytecode_for_microservice(map(), binary() | nil, binary() | nil) :: map()
   def prepare_bytecode_for_microservice(body, creation_input, deployed_bytecode)
 
-  def prepare_bytecode_for_microservice(body, creation_input, deployed_bytecode) when is_nil(creation_input) do
+  def prepare_bytecode_for_microservice(body, empty, deployed_bytecode) when is_nil(empty) do
     if Application.get_env(:explorer, :chain_type) == :zksync do
       body
       |> Map.put("code", deployed_bytecode)
@@ -241,20 +226,15 @@ defmodule Explorer.SmartContract.Helper do
   def prepare_license_type(_), do: nil
 
   @doc """
-  Pre-fetches implementation for unverified smart-contract or verified proxy smart-contract
+  Pre-fetches implementation for unverified smart contract or verified proxy smart-contract
   """
-  @spec pre_fetch_implementations(Address.t()) :: Implementation.t() | nil
+  @spec pre_fetch_implementations(Address.t()) :: {any(), atom() | nil}
   def pre_fetch_implementations(address) do
-    implementation =
+    {implementation_address_hashes, implementation_names, proxy_type} =
       with {:verified_smart_contract, %SmartContract{}} <- {:verified_smart_contract, address.smart_contract},
-           {:proxy?, true} <- {:proxy?, address_is_proxy?(address, @api_true)},
-           # we should fetch implementations only for original smart-contract and exclude fetching implementations of bytecode twin
-           {:bytecode_twin?, false} <- {:bytecode_twin?, address.hash != address.smart_contract.address_hash} do
+           {:proxy?, true} <- {:proxy?, address_is_proxy?(address, @api_true)} do
         Implementation.get_implementation(address.smart_contract, @api_true)
       else
-        {:bytecode_twin?, true} ->
-          nil
-
         {:verified_smart_contract, _} ->
           if Address.smart_contract?(address) do
             smart_contract = %SmartContract{
@@ -262,14 +242,17 @@ defmodule Explorer.SmartContract.Helper do
             }
 
             Implementation.get_implementation(smart_contract, @api_true)
+          else
+            {[], [], nil}
           end
 
         {:proxy?, false} ->
-          nil
+          {[], [], nil}
       end
 
-    implementation
-    |> Chain.select_repo(@api_true).preload(Implementation.proxy_implementations_addresses_association())
+    implementations = Proxy.proxy_object_info(implementation_address_hashes, implementation_names)
+
+    {implementations, proxy_type}
   end
 
   @doc """
@@ -283,32 +266,4 @@ defmodule Explorer.SmartContract.Helper do
   end
 
   def address_is_proxy?(%Address{smart_contract: _}, _), do: false
-
-  @doc """
-  Gets binary hash string from contract's getter.
-  """
-  @spec get_binary_string_from_contract_getter(binary(), binary(), SmartContract.abi(), list()) ::
-          binary() | [binary()] | nil | :error
-  def get_binary_string_from_contract_getter(signature, address_hash_string, abi, params \\ []) do
-    binary_hash =
-      case Reader.query_contract(
-             address_hash_string,
-             abi,
-             %{
-               "#{signature}" => params
-             },
-             false
-           ) do
-        %{^signature => {:ok, [result]}} ->
-          result
-
-        %{^signature => {:error, _error}} ->
-          :error
-
-        _ ->
-          nil
-      end
-
-    ExplorerHelper.add_0x_prefix(binary_hash)
-  end
 end

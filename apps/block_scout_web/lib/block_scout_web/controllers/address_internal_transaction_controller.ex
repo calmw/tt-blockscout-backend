@@ -18,7 +18,7 @@ defmodule BlockScoutWeb.AddressInternalTransactionController do
   def index(conn, %{"address_id" => address_hash_string, "type" => "JSON"} = params) do
     with {:ok, address_hash} <- Chain.string_to_address_hash(address_hash_string),
          {:ok, address} <-
-           Chain.hash_to_address(address_hash, necessity_by_association: %{:smart_contract => :optional}),
+           Chain.hash_to_address(address_hash, [necessity_by_association: %{:smart_contract => :optional}], false),
          {:ok, false} <- AccessHelper.restricted_access?(address_hash_string, params) do
       full_options =
         [
@@ -76,8 +76,6 @@ defmodule BlockScoutWeb.AddressInternalTransactionController do
   end
 
   def index(conn, %{"address_id" => address_hash_string} = params) do
-    ip = AccessHelper.conn_to_ip_string(conn)
-
     with {:ok, address_hash} <- Chain.string_to_address_hash(address_hash_string),
          {:ok, address} <- Chain.hash_to_address(address_hash),
          {:ok, false} <- AccessHelper.restricted_access?(address_hash_string, params) do
@@ -85,7 +83,7 @@ defmodule BlockScoutWeb.AddressInternalTransactionController do
         conn,
         "index.html",
         address: address,
-        coin_balance_status: CoinBalanceOnDemand.trigger_fetch(ip, address),
+        coin_balance_status: CoinBalanceOnDemand.trigger_fetch(address),
         current_path: Controller.current_full_path(conn),
         exchange_rate: Market.get_coin_exchange_rate(),
         filter: params["filter"],
@@ -113,7 +111,7 @@ defmodule BlockScoutWeb.AddressInternalTransactionController do
               "index.html",
               address: address,
               filter: params["filter"],
-              coin_balance_status: CoinBalanceOnDemand.trigger_fetch(ip, address),
+              coin_balance_status: nil,
               exchange_rate: Market.get_coin_exchange_rate(),
               counters_path: address_path(conn, :address_counters, %{"id" => Address.checksum(address_hash)}),
               current_path: Controller.current_full_path(conn),

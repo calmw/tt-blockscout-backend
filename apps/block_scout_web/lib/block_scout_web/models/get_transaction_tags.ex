@@ -7,6 +7,7 @@ defmodule BlockScoutWeb.Models.GetTransactionTags do
 
   alias Explorer.Account.TagTransaction
   alias Explorer.Chain.Transaction
+  alias Explorer.Repo
 
   def get_transaction_with_addresses_tags(
         %Transaction{} = transaction,
@@ -26,10 +27,7 @@ defmodule BlockScoutWeb.Models.GetTransactionTags do
     }
 
   def get_transaction_tags(transaction_hash, %{id: identity_id}) do
-    case TagTransaction.get_tag_transaction_by_transaction_hash_and_identity_id(transaction_hash, identity_id) do
-      [tag | _] -> tag
-      _ -> nil
-    end
+    Repo.account_repo().get_by(TagTransaction, transaction_hash_hash: transaction_hash, identity_id: identity_id)
   end
 
   def get_transaction_tags(_, _), do: nil

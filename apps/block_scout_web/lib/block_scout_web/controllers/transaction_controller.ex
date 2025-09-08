@@ -25,7 +25,7 @@ defmodule BlockScoutWeb.TransactionController do
   }
 
   alias Explorer.{Chain, Market}
-  alias Explorer.Chain.Cache.Counters.TransactionsCount
+  alias Explorer.Chain.Cache.Transaction, as: TransactionCache
   alias Explorer.Chain.DenormalizationHelper
   alias Phoenix.View
 
@@ -118,7 +118,7 @@ defmodule BlockScoutWeb.TransactionController do
   end
 
   def index(conn, _params) do
-    transaction_estimated_count = TransactionsCount.get()
+    transaction_estimated_count = TransactionCache.estimated_count()
 
     render(
       conn,

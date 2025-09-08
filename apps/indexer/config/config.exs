@@ -12,8 +12,6 @@ config :indexer, Indexer.Tracer,
 
 config :indexer, Indexer.Block.Catchup.MissingRangesCollector, future_check_interval: :timer.minutes(1)
 
-config :indexer, Indexer.Migrator.RecoveryWETHTokenTransfers, enabled: true
-
 config :logger, :indexer,
   # keep synced with `config/config.exs`
   format: "$dateT$time $metadata[$level] $message\n",

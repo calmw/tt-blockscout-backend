@@ -9,12 +9,12 @@ defmodule Indexer.MixProject do
       config_path: "../../config/config.exs",
       deps: deps(),
       deps_path: "../../deps",
-      description: "Fetches blockchain data from on-chain node for later reading with Explorer.",
-      elixir: "~> 1.17",
+      description: "Fetches block chain data from on-chain node for later reading with Explorer.",
+      elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       lockfile: "../../mix.lock",
       start_permanent: Mix.env() == :prod,
-      version: "8.0.0",
+      version: "6.8.1",
       xref: [
         exclude: [
           Explorer.Chain.Optimism.Deposit,
@@ -52,7 +52,7 @@ defmodule Indexer.MixProject do
       # JSONRPC access to Nethermind for `Explorer.Indexer`
       {:ethereum_jsonrpc, in_umbrella: true},
       # Brotli compression/decompression
-      {:ex_brotli, "~> 0.5.0"},
+      {:brotli, "~> 0.3.2"},
       {:ex_keccak, "~> 0.7.5"},
       # RLP encoding
       {:ex_rlp, "~> 0.6.0"},
@@ -70,9 +70,7 @@ defmodule Indexer.MixProject do
       # `:spandex` integration with Datadog
       {:spandex_datadog, "~> 1.0"},
       {:logger_json, "~> 5.1"},
-      {:varint, "~> 1.4"},
-      {:utils, in_umbrella: true},
-      {:cachex, "~> 4.0"}
+      {:varint, "~> 1.4"}
     ]
   end
 

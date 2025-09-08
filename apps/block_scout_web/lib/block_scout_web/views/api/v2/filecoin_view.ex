@@ -1,13 +1,11 @@
-defmodule BlockScoutWeb.API.V2.FilecoinView do
-  @moduledoc """
-  View functions for rendering Filecoin-related data in JSON format.
-  """
-  use Utils.CompileTimeEnvHelper, chain_type: [:explorer, :chain_type]
+if Application.compile_env(:explorer, :chain_type) == :filecoin do
+  defmodule BlockScoutWeb.API.V2.FilecoinView do
+    @moduledoc """
+    View functions for rendering Filecoin-related data in JSON format.
+    """
 
-  if @chain_type == :filecoin do
-    # TODO: remove when https://github.com/elixir-lang/elixir/issues/13975 comes to elixir release
-    alias Explorer.Chain, warn: false
-    alias Explorer.Chain.Address, warn: false
+    alias Explorer.Chain
+    alias Explorer.Chain.Address
 
     @api_true [api?: true]
 
@@ -28,19 +26,14 @@ defmodule BlockScoutWeb.API.V2.FilecoinView do
     end
 
     @spec preload_and_put_filecoin_robust_address(map(), %{
-            optional(:address_hash) => String.t() | nil,
-            optional(:field_prefix) => String.t() | nil,
-            optional(any) => any
+            address_hash: String.t() | nil,
+            field_prefix: String.t() | nil
           }) ::
             map()
     def preload_and_put_filecoin_robust_address(result, %{address_hash: address_hash} = params) do
       address = address_hash && Address.get(address_hash, @api_true)
 
       put_filecoin_robust_address(result, Map.put(params, :address, address))
-    end
-
-    def preload_and_put_filecoin_robust_address(result, _params) do
-      result
     end
 
     @doc """
@@ -93,15 +86,15 @@ defmodule BlockScoutWeb.API.V2.FilecoinView do
     def preload_and_put_filecoin_robust_address_to_search_results(search_results) do
       addresses_map =
         search_results
-        |> Enum.map(& &1["address_hash"])
+        |> Enum.map(& &1["address"])
         |> Enum.reject(&is_nil/1)
         |> Chain.hashes_to_addresses(@api_true)
-        |> Enum.into(%{}, &{to_string(&1.hash), &1})
+        |> Enum.group_by(&to_string(&1.hash))
 
       search_results
       |> Enum.map(fn
-        %{"address_hash" => address_hash} = result when not is_nil(address_hash) ->
-          address = addresses_map[String.downcase(address_hash)]
+        %{"address" => address_hash} = result when not is_nil(address_hash) ->
+          address = addresses_map[String.downcase(address_hash)] |> List.first()
           put_filecoin_robust_address(result, %{address: address, field_prefix: nil})
 
         other ->
@@ -110,5 +103,3 @@ defmodule BlockScoutWeb.API.V2.FilecoinView do
     end
   end
 end
-
-# end

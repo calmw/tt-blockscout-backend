@@ -2,7 +2,7 @@ defmodule BlockScoutWeb.API.RPC.StatsController do
   use BlockScoutWeb, :controller
 
   alias Explorer.{Chain, Etherscan, Market}
-  alias Explorer.Chain.Cache.Counters.{AddressesCoinBalanceSum, AddressesCoinBalanceSumMinusBurnt, LastFetchedCounter}
+  alias Explorer.Chain.Cache.{AddressSum, AddressSumMinusBurnt}
   alias Explorer.Chain.Wei
 
   @cmc_token_supply_precision 9
@@ -14,14 +14,7 @@ defmodule BlockScoutWeb.API.RPC.StatsController do
       if Map.get(params, "cmc") == "true" do
         conn
         |> put_resp_content_type("text/plain")
-        |> send_resp(
-          200,
-          token.total_supply &&
-            to_cmc_total_supply(
-              token.total_supply,
-              token.decimals
-            )
-        )
+        |> send_resp(200, token.total_supply && to_cmc_total_supply(token.total_supply))
       else
         conn
         |> render(
@@ -53,19 +46,19 @@ defmodule BlockScoutWeb.API.RPC.StatsController do
   end
 
   def ethsupply(conn, _params) do
-    cached_wei_total_supply = AddressesCoinBalanceSum.get_sum()
+    cached_wei_total_supply = AddressSum.get_sum()
 
     render(conn, "ethsupply.json", total_supply: cached_wei_total_supply)
   end
 
   def coinsupply(conn, _params) do
-    cached_coin_total_supply_wei = AddressesCoinBalanceSumMinusBurnt.get_sum_minus_burnt()
+    cached_coin_total_supply_wei = AddressSumMinusBurnt.get_sum_minus_burnt()
 
     coin_total_supply_wei =
       if Decimal.compare(cached_coin_total_supply_wei, 0) == :gt do
         cached_coin_total_supply_wei
       else
-        LastFetchedCounter.get("sum_coin_total_supply_minus_burnt")
+        Chain.get_last_fetched_counter("sum_coin_total_supply_minus_burnt")
       end
 
     cached_coin_total_supply =
@@ -96,15 +89,11 @@ defmodule BlockScoutWeb.API.RPC.StatsController do
     {:format, Chain.string_to_address_hash(address_hash_string)}
   end
 
-  @spec to_cmc_total_supply(Decimal.t(), Decimal.t() | nil) :: String.t()
-  defp to_cmc_total_supply(total_supply, decimals) do
-    divider =
-      1
-      |> Decimal.new(1, Decimal.to_integer(decimals || Decimal.new(0)))
-      |> Decimal.to_integer()
-
+  @spec to_cmc_total_supply(Decimal.t()) :: String.t()
+  defp to_cmc_total_supply(total_supply) do
     total_supply
-    |> Decimal.div(divider)
+    |> Wei.from(:wei)
+    |> Wei.to(:ether)
     |> Decimal.round(@cmc_token_supply_precision)
     |> Decimal.to_string()
   end

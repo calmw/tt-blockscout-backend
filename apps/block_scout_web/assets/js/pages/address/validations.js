@@ -59,7 +59,7 @@ if ($('[data-page="blocks-validated"]').length) {
     addressHash
   })
 
-  const blocksChannel = socket.channel(`blocks_old:${addressHash}`, {})
+  const blocksChannel = socket.channel(`blocks:${addressHash}`, {})
   blocksChannel.join()
   blocksChannel.onError(() => store.dispatch({
     type: 'CHANNEL_DISCONNECTED'

@@ -208,53 +208,23 @@ defmodule Explorer.Etherscan.LogsTest do
     test "paginates logs" do
       contract_address = insert(:contract_address)
 
-      transaction_a =
-        :transaction
-        |> insert(to_address: contract_address)
-        |> with_block()
-
-      transaction_b =
-        :transaction
-        |> insert(to_address: contract_address)
-        |> with_block()
-
-      transaction_c =
+      transaction =
+        %Transaction{block: block} =
         :transaction
         |> insert(to_address: contract_address)
         |> with_block()
 
       inserted_records =
-        for i <- 1..700 do
-          insert(:log,
-            address: contract_address,
-            transaction: transaction_a,
-            block_number: transaction_a.block.number,
-            block: transaction_a.block,
-            index: i
-          )
-        end ++
-          for i <- 1..700 do
-            insert(:log,
-              address: contract_address,
-              transaction: transaction_b,
-              block_number: transaction_b.block.number,
-              block: transaction_b.block,
-              index: i
-            )
-          end ++
-          for i <- 1..600 do
-            insert(:log,
-              address: contract_address,
-              transaction: transaction_c,
-              block_number: transaction_c.block.number,
-              block: transaction_c.block,
-              index: i
-            )
-          end
+        insert_list(2000, :log,
+          address: contract_address,
+          transaction: transaction,
+          block_number: block.number,
+          block: block
+        )
 
       filter = %{
-        from_block: transaction_a.block.number,
-        to_block: transaction_c.block.number,
+        from_block: block.number,
+        to_block: block.number,
         address_hash: contract_address.hash
       }
 
@@ -266,7 +236,7 @@ defmodule Explorer.Etherscan.LogsTest do
 
       next_page_params = %{
         log_index: last_record.index,
-        block_number: last_record.block_number
+        block_number: transaction.block_number
       }
 
       second_found_logs = Logs.list_logs(filter, next_page_params)

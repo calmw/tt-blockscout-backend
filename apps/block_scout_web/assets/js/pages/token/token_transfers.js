@@ -70,7 +70,7 @@ if ($('[data-page="token-transfer-list"]')) {
     beyondPageOne: !!blockNumber
   })
 
-  const tokensChannel = subscribeChannel(`tokens_old:${addressHash}`)
+  const tokensChannel = subscribeChannel(`tokens:${addressHash}`)
   tokensChannel.onError(() => store.dispatch({ type: 'CHANNEL_DISCONNECTED' }))
   tokensChannel.on('token_transfer', (msg) => {
     store.dispatch({
@@ -79,7 +79,7 @@ if ($('[data-page="token-transfer-list"]')) {
     })
   })
 
-  const rewardsChannel = subscribeChannel(`rewards_old:${addressHash}`)
+  const rewardsChannel = subscribeChannel(`rewards:${addressHash}`)
   rewardsChannel.onError(() => store.dispatch({ type: 'CHANNEL_DISCONNECTED' }))
   rewardsChannel.on('new_reward', (msg) => {
     store.dispatch({

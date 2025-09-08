@@ -7,7 +7,6 @@ defmodule Indexer.Transform.Celo.ValidatorEpochPaymentDistributions do
 
   alias Explorer.Chain.Cache.CeloCoreContracts
   alias Explorer.Chain.{Hash, Log}
-  alias Explorer.Helper, as: ExplorerHelper
 
   require Logger
 
@@ -63,9 +62,9 @@ defmodule Indexer.Transform.Celo.ValidatorEpochPaymentDistributions do
        ]} = Log.find_and_decode(@event_abi, log, log.block_hash)
 
       %{
-        validator_address: ExplorerHelper.add_0x_prefix(validator_address),
+        validator_address: "0x" <> Base.encode16(validator_address, case: :lower),
         validator_payment: validator_payment,
-        group_address: ExplorerHelper.add_0x_prefix(group_address),
+        group_address: "0x" <> Base.encode16(group_address, case: :lower),
         group_payment: group_payment
       }
     end)

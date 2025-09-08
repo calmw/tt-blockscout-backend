@@ -1,11 +1,10 @@
 defmodule BlockScoutWeb.API.V2.BlockView do
   use BlockScoutWeb, :view
-  use Utils.CompileTimeEnvHelper, chain_type: [:explorer, :chain_type]
 
   alias BlockScoutWeb.BlockView
   alias BlockScoutWeb.API.V2.{ApiView, Helper}
   alias Explorer.Chain.Block
-  alias Explorer.Chain.Cache.Counters.BlockPriorityFeeCount
+  alias Explorer.Counters.BlockPriorityFeeCounter
 
   def render("message.json", assigns) do
     ApiView.render("message.json", assigns)
@@ -30,16 +29,16 @@ defmodule BlockScoutWeb.API.V2.BlockView do
 
   def prepare_block(block, _conn, single_block? \\ false) do
     burnt_fees = Block.burnt_fees(block.transactions, block.base_fee_per_gas)
-    priority_fee = block.base_fee_per_gas && BlockPriorityFeeCount.fetch(block.hash)
+    priority_fee = block.base_fee_per_gas && BlockPriorityFeeCounter.fetch(block.hash)
 
     transaction_fees = Block.transaction_fees(block.transactions)
 
     %{
       "height" => block.number,
       "timestamp" => block.timestamp,
-      "transactions_count" => count_transactions(block),
-      # todo: It should be removed in favour `transactions_count` property with the next release after 8.0.0
       "transaction_count" => count_transactions(block),
+      # todo: keep next line for compatibility with frontend and remove when new frontend is bound to `transaction_count` property
+      "tx_count" => count_transactions(block),
       "miner" => Helper.address_with_info(nil, block.miner, block.miner_hash, false),
       "size" => block.size,
       "hash" => block.hash,
@@ -61,6 +60,8 @@ defmodule BlockScoutWeb.API.V2.BlockView do
       "burnt_fees_percentage" => burnt_fees_percentage(burnt_fees, transaction_fees),
       "type" => block |> BlockView.block_type() |> String.downcase(),
       "transaction_fees" => transaction_fees,
+      # todo: keep next line for compatibility with frontend and remove when new frontend is bound to `transaction_fees` property
+      "tx_fees" => transaction_fees,
       "withdrawals_count" => count_withdrawals(block)
     }
     |> chain_type_fields(block, single_block?)
@@ -102,7 +103,7 @@ defmodule BlockScoutWeb.API.V2.BlockView do
   def count_withdrawals(%Block{withdrawals: withdrawals}) when is_list(withdrawals), do: Enum.count(withdrawals)
   def count_withdrawals(_), do: nil
 
-  case @chain_type do
+  case Application.compile_env(:explorer, :chain_type) do
     :rsk ->
       defp chain_type_fields(result, block, single_block?) do
         if single_block? do
@@ -153,12 +154,6 @@ defmodule BlockScoutWeb.API.V2.BlockView do
       defp chain_type_fields(result, block, single_block?) do
         # credo:disable-for-next-line Credo.Check.Design.AliasUsage
         BlockScoutWeb.API.V2.CeloView.extend_block_json_response(result, block, single_block?)
-      end
-
-    :zilliqa ->
-      defp chain_type_fields(result, block, single_block?) do
-        # credo:disable-for-next-line Credo.Check.Design.AliasUsage
-        BlockScoutWeb.API.V2.ZilliqaView.extend_block_json_response(result, block, single_block?)
       end
 
     _ ->

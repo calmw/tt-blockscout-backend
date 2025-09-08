@@ -86,12 +86,15 @@ defmodule BlockScoutWeb.API.V2.PolygonEdgeView do
          {:ok, address} <-
            Chain.hash_to_address(
              hash,
-             necessity_by_association: %{
-               :names => :optional,
-               :smart_contract => :optional,
-               proxy_implementations_association() => :optional
-             },
-             api?: true
+             [
+               necessity_by_association: %{
+                 :names => :optional,
+                 :smart_contract => :optional,
+                 :proxy_implementations => :optional
+               },
+               api?: true
+             ],
+             false
            ) do
       {address, address.hash}
     else

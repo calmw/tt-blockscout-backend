@@ -9,18 +9,7 @@ defmodule Explorer.Chain.Import.Runner.InternalTransactions do
   alias Ecto.Adapters.SQL
   alias Ecto.{Changeset, Multi, Repo}
   alias EthereumJSONRPC.Utility.RangesHelper
-
-  alias Explorer.Chain.{
-    Block,
-    Hash,
-    Import,
-    InternalTransaction,
-    PendingBlockOperation,
-    PendingOperationsHelper,
-    PendingTransactionOperation,
-    Transaction
-  }
-
+  alias Explorer.Chain.{Block, Hash, Import, InternalTransaction, PendingBlockOperation, Transaction}
   alias Explorer.Chain.Events.Publisher
   alias Explorer.Chain.Import.Runner
   alias Explorer.Prometheus.Instrumenter
@@ -84,9 +73,9 @@ defmodule Explorer.Chain.Import.Runner.InternalTransactions do
         :acquire_pending_internal_transactions
       )
     end)
-    |> Multi.run(:acquire_transactions, fn repo, %{acquire_pending_internal_transactions: pending_ops_hashes} ->
+    |> Multi.run(:acquire_transactions, fn repo, %{acquire_pending_internal_transactions: pending_block_hashes} ->
       Instrumenter.block_import_stage_runner(
-        fn -> acquire_transactions(repo, pending_ops_hashes) end,
+        fn -> acquire_transactions(repo, pending_block_hashes) end,
         :block_pending,
         :internal_transactions,
         :acquire_transactions
@@ -182,11 +171,11 @@ defmodule Explorer.Chain.Import.Runner.InternalTransactions do
     end)
     |> Multi.run(:update_pending_blocks_status, fn repo,
                                                    %{
-                                                     acquire_pending_internal_transactions: pending_ops_hashes,
+                                                     acquire_pending_internal_transactions: pending_block_hashes,
                                                      set_refetch_needed_for_invalid_blocks: invalid_block_hashes
                                                    } ->
       Instrumenter.block_import_stage_runner(
-        fn -> update_pending_blocks_status(repo, pending_ops_hashes, invalid_block_hashes) end,
+        fn -> update_pending_blocks_status(repo, pending_block_hashes, invalid_block_hashes) end,
         :block_pending,
         :internal_transactions,
         :update_pending_blocks_status
@@ -321,47 +310,24 @@ defmodule Explorer.Chain.Import.Runner.InternalTransactions do
   end
 
   defp acquire_pending_internal_transactions(repo, block_hashes) do
-    case PendingOperationsHelper.pending_operations_type() do
-      "blocks" ->
-        query =
-          from(
-            pending_ops in PendingBlockOperation,
-            where: pending_ops.block_hash in ^block_hashes,
-            select: pending_ops.block_hash,
-            # Enforce PendingBlockOperation ShareLocks order (see docs: sharelocks.md)
-            order_by: [asc: pending_ops.block_hash],
-            lock: "FOR UPDATE"
-          )
+    query =
+      from(
+        pending_ops in PendingBlockOperation,
+        where: pending_ops.block_hash in ^block_hashes,
+        select: pending_ops.block_hash,
+        # Enforce PendingBlockOperation ShareLocks order (see docs: sharelocks.md)
+        order_by: [asc: pending_ops.block_hash],
+        lock: "FOR UPDATE"
+      )
 
-        {:ok, {:block_hashes, repo.all(query)}}
-
-      "transactions" ->
-        query =
-          from(
-            pending_ops in PendingTransactionOperation,
-            join: transaction in assoc(pending_ops, :transaction),
-            where: transaction.block_hash in ^block_hashes,
-            select: pending_ops.transaction_hash,
-            # Enforce PendingTransactionOperation ShareLocks order (see docs: sharelocks.md)
-            order_by: [asc: pending_ops.transaction_hash],
-            lock: "FOR UPDATE"
-          )
-
-        {:ok, {:transaction_hashes, repo.all(query)}}
-    end
+    {:ok, repo.all(query)}
   end
 
-  defp acquire_transactions(repo, pending_ops_hashes) do
-    dynamic_condition =
-      case pending_ops_hashes do
-        {:block_hashes, block_hashes} -> dynamic([t], t.block_hash in ^block_hashes)
-        {:transaction_hashes, transaction_hashes} -> dynamic([t], t.hash in ^transaction_hashes)
-      end
-
+  defp acquire_transactions(repo, pending_block_hashes) do
     query =
       from(
         t in Transaction,
-        where: ^dynamic_condition,
+        where: t.block_hash in ^pending_block_hashes,
         select: map(t, [:hash, :block_hash, :block_number, :cumulative_gas_used, :status]),
         # Enforce Transaction ShareLocks order (see docs: sharelocks.md)
         order_by: [asc: t.hash],
@@ -820,26 +786,17 @@ defmodule Explorer.Chain.Import.Runner.InternalTransactions do
   end
 
   def update_pending_blocks_status(repo, pending_hashes, invalid_block_hashes) do
+    valid_block_hashes =
+      pending_hashes
+      |> MapSet.new()
+      |> MapSet.difference(MapSet.new(invalid_block_hashes))
+      |> MapSet.to_list()
+
     delete_query =
-      case pending_hashes do
-        {:block_hashes, block_hashes} ->
-          valid_block_hashes =
-            block_hashes
-            |> MapSet.new()
-            |> MapSet.difference(MapSet.new(invalid_block_hashes))
-            |> MapSet.to_list()
-
-          from(
-            pending_ops in PendingBlockOperation,
-            where: pending_ops.block_hash in ^valid_block_hashes
-          )
-
-        {:transaction_hashes, transaction_hashes} ->
-          from(
-            pending_ops in PendingTransactionOperation,
-            where: pending_ops.transaction_hash in ^transaction_hashes
-          )
-      end
+      from(
+        pending_ops in PendingBlockOperation,
+        where: pending_ops.block_hash in ^valid_block_hashes
+      )
 
     try do
       # ShareLocks order already enforced by `acquire_pending_internal_transactions` (see docs: sharelocks.md)
@@ -848,7 +805,7 @@ defmodule Explorer.Chain.Import.Runner.InternalTransactions do
       {:ok, deleted}
     rescue
       postgrex_error in Postgrex.Error ->
-        {:error, %{exception: postgrex_error, pending_hashes: pending_hashes}}
+        {:error, %{exception: postgrex_error, pending_hashes: valid_block_hashes}}
     end
   end
 

@@ -573,7 +573,7 @@ defmodule Indexer.Fetcher.PolygonEdge do
       transport: EthereumJSONRPC.HTTP,
       transport_options: [
         http: EthereumJSONRPC.HTTP.HTTPoison,
-        urls: [polygon_edge_l1_rpc],
+        url: polygon_edge_l1_rpc,
         http_options: [
           recv_timeout: :timer.minutes(10),
           timeout: :timer.minutes(10),
@@ -609,13 +609,5 @@ defmodule Indexer.Fetcher.PolygonEdge do
   @spec repeated_request(list(), any(), list(), non_neg_integer()) :: {:ok, any()} | {:error, atom()}
   def repeated_request(req, error_message, json_rpc_named_arguments, retries) do
     Helper.repeated_call(&json_rpc/2, [req, json_rpc_named_arguments], error_message, retries)
-  end
-
-  @doc """
-    Returns L1 RPC URL for a Polygon Edge module.
-  """
-  @spec l1_rpc_url() :: binary()
-  def l1_rpc_url do
-    Application.get_all_env(:indexer)[__MODULE__][:polygon_edge_l1_rpc]
   end
 end

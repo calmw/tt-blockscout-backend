@@ -7,12 +7,21 @@ defmodule BlockScoutWeb.AddressWithdrawalControllerTest do
   import Mox
 
   alias Explorer.Chain.Address
-  alias Explorer.Market.Token
+  alias Explorer.ExchangeRates.Token
 
   setup :verify_on_exit!
 
   describe "GET index/2" do
     setup :set_mox_global
+
+    setup do
+      configuration = Application.get_env(:explorer, :checksum_function)
+      Application.put_env(:explorer, :checksum_function, :eth)
+
+      on_exit(fn ->
+        Application.put_env(:explorer, :checksum_function, configuration)
+      end)
+    end
 
     test "with invalid address hash", %{conn: conn} do
       conn = get(conn, address_withdrawal_path(conn, :index, "invalid_address"))
@@ -20,20 +29,18 @@ defmodule BlockScoutWeb.AddressWithdrawalControllerTest do
       assert html_response(conn, 422)
     end
 
-    if Application.compile_env(:explorer, :chain_type) !== :rsk do
-      test "with valid address hash without address in the DB", %{conn: conn} do
-        conn =
-          get(
-            conn,
-            address_withdrawal_path(conn, :index, Address.checksum("0x8bf38d4764929064f2d4d3a56520a76ab3df415b"), %{
-              "type" => "JSON"
-            })
-          )
+    test "with valid address hash without address in the DB", %{conn: conn} do
+      conn =
+        get(
+          conn,
+          address_withdrawal_path(conn, :index, Address.checksum("0x8bf38d4764929064f2d4d3a56520a76ab3df415b"), %{
+            "type" => "JSON"
+          })
+        )
 
-        assert json_response(conn, 200)
-        tiles = json_response(conn, 200)["items"]
-        assert tiles |> length() == 0
-      end
+      assert json_response(conn, 200)
+      tiles = json_response(conn, 200)["items"]
+      assert tiles |> length() == 0
     end
 
     test "returns withdrawals for the address", %{conn: conn} do

@@ -7,7 +7,7 @@ defmodule Indexer.Fetcher.InternalTransactionTest do
 
   alias Ecto.Multi
   alias Explorer.{Chain, Repo}
-  alias Explorer.Chain.{Block, PendingBlockOperation, PendingTransactionOperation}
+  alias Explorer.Chain.{Block, PendingBlockOperation}
   alias Explorer.Chain.Import.Runner.Blocks
   alias Indexer.Fetcher.CoinBalance.Catchup, as: CoinBalanceCatchup
   alias Indexer.Fetcher.{InternalTransaction, PendingTransaction, TokenBalance}
@@ -17,13 +17,6 @@ defmodule Indexer.Fetcher.InternalTransactionTest do
   setup :set_mox_global
 
   setup :verify_on_exit!
-
-  setup do
-    config = Application.get_env(:ethereum_jsonrpc, EthereumJSONRPC.Geth)
-    Application.put_env(:ethereum_jsonrpc, EthereumJSONRPC.Geth, Keyword.put(config, :block_traceable?, true))
-
-    on_exit(fn -> Application.put_env(:ethereum_jsonrpc, EthereumJSONRPC.Geth, config) end)
-  end
 
   @moduletag [capture_log: true, no_geth: true]
 
@@ -522,9 +515,6 @@ defmodule Indexer.Fetcher.InternalTransactionTest do
     test "fetches internal transactions from Arbitrum", %{
       json_rpc_named_arguments: json_rpc_named_arguments
     } do
-      config = Application.get_env(:ethereum_jsonrpc, EthereumJSONRPC.Geth)
-      Application.put_env(:ethereum_jsonrpc, EthereumJSONRPC.Geth, Keyword.put(config, :block_traceable?, false))
-
       json_rpc_named_arguments =
         json_rpc_named_arguments
         |> Enum.reject(fn {key, _value} -> key == :variant || key == :transport_options end)
@@ -532,10 +522,10 @@ defmodule Indexer.Fetcher.InternalTransactionTest do
         |> Enum.concat([{:transport_options, [http_options: []]}])
 
       block = insert(:block, number: 1)
-      transaction = :transaction |> insert() |> with_block(block)
+      _transaction = :transaction |> insert() |> with_block(block)
       block_number = block.number
       block_hash = block.hash
-      insert(:pending_transaction_operation, transaction_hash: transaction.hash)
+      insert(:pending_block_operation, block_hash: block_hash, block_number: block_number)
 
       EthereumJSONRPC.Mox
       |> expect(:json_rpc, fn [%{id: id, method: "debug_traceTransaction"}], _options ->
@@ -608,15 +598,11 @@ defmodule Indexer.Fetcher.InternalTransactionTest do
 
       CoinBalanceCatchup.Supervisor.Case.start_supervised!(json_rpc_named_arguments: json_rpc_named_arguments)
 
-      assert %{} = Repo.get(PendingTransactionOperation, transaction.hash)
+      assert %{block_hash: block_hash} = Repo.get(PendingBlockOperation, block_hash)
 
-      assert :ok ==
-               InternalTransaction.run(
-                 [%{block_number: transaction.block_number, hash: transaction.hash, index: transaction.index}],
-                 json_rpc_named_arguments
-               )
+      assert :ok == InternalTransaction.run([block_number], json_rpc_named_arguments)
 
-      assert nil == Repo.get(PendingTransactionOperation, transaction.hash)
+      assert nil == Repo.get(PendingBlockOperation, block_hash)
 
       internal_transactions = Repo.all(from(i in Chain.InternalTransaction, where: i.block_hash == ^block_hash))
 

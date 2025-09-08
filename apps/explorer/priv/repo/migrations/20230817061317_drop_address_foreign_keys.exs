@@ -1,3 +1,4 @@
+# cspell:ignore fkey
 defmodule Explorer.Repo.Migrations.DropAddressForeignKeys do
   use Ecto.Migration
 

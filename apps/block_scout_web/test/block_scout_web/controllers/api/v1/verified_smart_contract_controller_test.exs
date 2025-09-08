@@ -3,6 +3,8 @@ defmodule BlockScoutWeb.API.V1.VerifiedControllerTest do
 
   # alias Explorer.Factory
 
+  # alias Explorer.Chain.DecompiledSmartContract
+
   # import Ecto.Query,
   #   only: [from: 2]
 

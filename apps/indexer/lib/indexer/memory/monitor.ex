@@ -107,7 +107,7 @@ defmodule Indexer.Memory.Monitor do
     percentage =
       case Application.get_env(:explorer, :mode) do
         :indexer -> 100
-        _ -> Application.get_env(:indexer, :system_memory_percentage)
+        :all -> Application.get_env(:indexer, :system_memory_percentage)
       end
 
     case :memsup.get_system_memory_data()[:total_memory] do
@@ -249,16 +249,7 @@ defmodule Indexer.Memory.Monitor do
       supervisor
       |> Supervisor.which_children()
       |> Enum.filter(fn {name, _, _, _} -> is_atom(name) and String.contains?(to_string(name), "OnDemand") end)
-      |> Enum.flat_map(fn
-        {_, pid, :supervisor, _} ->
-          pid
-          |> Supervisor.which_children()
-          |> Enum.filter(&(elem(&1, 2) == :worker))
-          |> Enum.map(&elem(&1, 1))
-
-        {_, pid, _, _} ->
-          [pid]
-      end)
+      |> Enum.map(fn {_, pid, _, _} -> pid end)
     end)
   end
 

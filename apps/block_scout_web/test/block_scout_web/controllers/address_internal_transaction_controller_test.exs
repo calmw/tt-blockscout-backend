@@ -5,7 +5,7 @@ defmodule BlockScoutWeb.AddressInternalTransactionControllerTest do
     only: [address_internal_transaction_path: 3, address_internal_transaction_path: 4]
 
   alias Explorer.Chain.{Address, Block, InternalTransaction, Transaction}
-  alias Explorer.Market.Token
+  alias Explorer.ExchangeRates.Token
 
   describe "GET index/3" do
     test "with invalid address hash", %{conn: conn} do
@@ -16,20 +16,18 @@ defmodule BlockScoutWeb.AddressInternalTransactionControllerTest do
       assert html_response(conn, 404)
     end
 
-    if Application.compile_env(:explorer, :chain_type) !== :rsk do
-      test "with valid address hash without address", %{conn: conn} do
-        conn =
-          get(
+    test "with valid address hash without address", %{conn: conn} do
+      conn =
+        get(
+          conn,
+          address_internal_transaction_path(
             conn,
-            address_internal_transaction_path(
-              conn,
-              :index,
-              Address.checksum("0x8bf38d4764929064f2d4d3a56520a76ab3df415b")
-            )
+            :index,
+            Address.checksum("0x8bf38d4764929064f2d4d3a56520a76ab3df415b")
           )
+        )
 
-        assert html_response(conn, 200)
-      end
+      assert html_response(conn, 200)
     end
 
     test "includes USD exchange rate value for address in assigns", %{conn: conn} do

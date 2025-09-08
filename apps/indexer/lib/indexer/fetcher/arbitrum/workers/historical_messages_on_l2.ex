@@ -20,9 +20,7 @@ defmodule Indexer.Fetcher.Arbitrum.Workers.HistoricalMessagesOnL2 do
 
   alias Indexer.Fetcher.Arbitrum.MessagesToL2Matcher, as: ArbitrumMessagesToL2Matcher
   alias Indexer.Fetcher.Arbitrum.Messaging
-  alias Indexer.Fetcher.Arbitrum.Utils.Db.Common, as: DbCommon
-  alias Indexer.Fetcher.Arbitrum.Utils.Db.Messages, as: DbMessages
-  alias Indexer.Fetcher.Arbitrum.Utils.Rpc
+  alias Indexer.Fetcher.Arbitrum.Utils.{Db, Rpc}
 
   require Logger
 
@@ -90,7 +88,7 @@ defmodule Indexer.Fetcher.Arbitrum.Workers.HistoricalMessagesOnL2 do
       when is_integer(end_block) do
     start_block = max(rollup_first_block, end_block - missed_messages_blocks_depth + 1)
 
-    if DbCommon.indexed_blocks?(start_block, end_block) do
+    if Db.indexed_blocks?(start_block, end_block) do
       do_discover_historical_messages_from_l2(start_block, end_block)
     else
       log_warning(
@@ -121,7 +119,7 @@ defmodule Indexer.Fetcher.Arbitrum.Workers.HistoricalMessagesOnL2 do
   defp do_discover_historical_messages_from_l2(start_block, end_block) do
     log_info("Block range for discovery historical messages from L2: #{start_block}..#{end_block}")
 
-    logs = DbMessages.logs_for_missed_messages_from_l2(start_block, end_block)
+    logs = Db.logs_for_missed_messages_from_l2(start_block, end_block)
 
     unless logs == [] do
       messages =
@@ -205,7 +203,7 @@ defmodule Indexer.Fetcher.Arbitrum.Workers.HistoricalMessagesOnL2 do
 
     # Although indexing blocks is not necessary to determine the completion of L1-to-L2 messages,
     # for database consistency, it is preferable to delay marking these messages as completed.
-    if DbCommon.indexed_blocks?(start_block, end_block) do
+    if Db.indexed_blocks?(start_block, end_block) do
       do_discover_historical_messages_to_l2(start_block, end_block, config)
     else
       log_warning(
@@ -261,7 +259,7 @@ defmodule Indexer.Fetcher.Arbitrum.Workers.HistoricalMessagesOnL2 do
        ) do
     log_info("Block range for discovery historical messages to L2: #{start_block}..#{end_block}")
 
-    transactions = DbMessages.transactions_for_missed_messages_to_l2(start_block, end_block)
+    transactions = Db.transactions_for_missed_messages_to_l2(start_block, end_block)
     transactions_length = length(transactions)
 
     if transactions_length > 0 do

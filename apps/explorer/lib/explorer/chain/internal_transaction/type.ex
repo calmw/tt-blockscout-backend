@@ -4,7 +4,6 @@ defmodule Explorer.Chain.InternalTransaction.Type do
   """
 
   use Ecto.Type
-  use Utils.CompileTimeEnvHelper, chain_type: [:explorer, :chain_type]
 
   @typedoc """
    * `:call`
@@ -13,7 +12,7 @@ defmodule Explorer.Chain.InternalTransaction.Type do
    * `:reward`
    * `:selfdestruct`
    * `:stop`
-   #{if @chain_type == :arbitrum do
+   #{if Application.compile_env(:explorer, :chain_type) == :arbitrum do
     """
       * `:invalid`
     """
@@ -21,11 +20,9 @@ defmodule Explorer.Chain.InternalTransaction.Type do
     ""
   end}
   """
-  if @chain_type == :arbitrum do
-    @type_values ["call", "create", "create2", "reward", "selfdestruct", "stop", "invalid"]
+  if Application.compile_env(:explorer, :chain_type) == :arbitrum do
     @type t :: :call | :create | :create2 | :reward | :selfdestruct | :stop | :invalid
   else
-    @type_values ["call", "create", "create2", "reward", "selfdestruct", "stop"]
     @type t :: :call | :create | :create2 | :reward | :selfdestruct | :stop
   end
 
@@ -78,7 +75,7 @@ defmodule Explorer.Chain.InternalTransaction.Type do
   def cast(type) when type in ["call", "create", "create2", "reward", "selfdestruct", "stop"],
     do: {:ok, String.to_existing_atom(type)}
 
-  if @chain_type == :arbitrum do
+  if Application.compile_env(:explorer, :chain_type) == :arbitrum do
     def cast("invalid"), do: {:ok, :invalid}
   end
 
@@ -113,7 +110,7 @@ defmodule Explorer.Chain.InternalTransaction.Type do
   @spec dump(term()) :: {:ok, String.t()} | :error
   def dump(type) when type in [:call, :create, :create2, :reward, :selfdestruct, :stop], do: {:ok, Atom.to_string(type)}
 
-  if @chain_type == :arbitrum do
+  if Application.compile_env(:explorer, :chain_type) == :arbitrum do
     def dump(:invalid), do: {:ok, "invalid"}
   end
 
@@ -149,7 +146,7 @@ defmodule Explorer.Chain.InternalTransaction.Type do
   def load(type) when type in ["call", "create", "create2", "reward", "selfdestruct", "stop"],
     do: {:ok, String.to_existing_atom(type)}
 
-  if @chain_type == :arbitrum do
+  if Application.compile_env(:explorer, :chain_type) == :arbitrum do
     def load("invalid"), do: {:ok, :invalid}
   end
 
@@ -163,15 +160,4 @@ defmodule Explorer.Chain.InternalTransaction.Type do
   @impl Ecto.Type
   @spec type() :: :string
   def type, do: :string
-
-  @doc """
-  Returns the list of internal transaction type values.
-
-  ## Example
-
-    > Explorer.Chain.InternalTransaction.Type.values()
-    ["call", "create", "create2", "reward", "selfdestruct", "stop"]
-  """
-  @spec values :: [String.t()]
-  def values, do: @type_values
 end

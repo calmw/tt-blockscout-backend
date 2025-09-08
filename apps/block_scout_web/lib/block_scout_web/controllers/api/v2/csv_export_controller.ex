@@ -1,23 +1,11 @@
-defmodule BlockScoutWeb.API.V2.CsvExportController do
+defmodule BlockScoutWeb.API.V2.CSVExportController do
   use BlockScoutWeb, :controller
 
-  alias BlockScoutWeb.{AccessHelper, CaptchaHelper}
-  alias BlockScoutWeb.API.V2.ApiView
+  alias BlockScoutWeb.AccessHelper
   alias Explorer.Chain
-  alias Explorer.Chain.Address
   alias Explorer.Chain.Address.CurrentTokenBalance
-  alias Explorer.Chain.CsvExport.Address.InternalTransactions, as: AddressInternalTransactionsCsvExporter
-  alias Explorer.Chain.CsvExport.Address.Logs, as: AddressLogsCsvExporter
-  alias Explorer.Chain.CsvExport.Address.TokenTransfers, as: AddressTokenTransfersCsvExporter
-  alias Explorer.Chain.CsvExport.Address.Transactions, as: AddressTransactionsCsvExporter
-
-  alias Explorer.Chain.CsvExport.Address.Celo.ElectionRewards,
-    as: AddressCeloElectionRewardsCsvExporter
-
-  alias Explorer.Chain.CsvExport.Helper, as: CsvHelper
+  alias Explorer.Chain.CSVExport.Helper, as: CSVHelper
   alias Plug.Conn
-
-  import BlockScoutWeb.Chain, only: [fetch_scam_token_toggle: 2]
 
   action_fallback(BlockScoutWeb.API.V2.FallbackController)
 
@@ -27,17 +15,20 @@ defmodule BlockScoutWeb.API.V2.CsvExportController do
   Performs CSV export of token holders for a given address
   Endpoint: `/api/v2/tokens/:address_hash_param/holders/csv`
   """
-  @spec export_token_holders(Conn.t(), map()) :: Conn.t()
+  @spec export_token_holders(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def export_token_holders(conn, %{"address_hash_param" => address_hash_string} = params) do
     with {:format, {:ok, address_hash}} <- {:format, Chain.string_to_address_hash(address_hash_string)},
          {:ok, false} <- AccessHelper.restricted_access?(address_hash_string, params),
-         {:recaptcha, true} <- {:recaptcha, CaptchaHelper.recaptcha_passed?(params)},
+         {:recaptcha, true} <-
+           {:recaptcha,
+            Application.get_env(:block_scout_web, :recaptcha)[:is_disabled] ||
+              CSVHelper.captcha_helper().recaptcha_passed?(params["recaptcha_response"])},
          {:not_found, {:ok, token}} <- {:not_found, Chain.token_from_address_hash(address_hash, @api_true)} do
       token_holders = Chain.fetch_token_holders_from_token_hash_for_csv(address_hash, options())
 
       token_holders
       |> CurrentTokenBalance.to_csv_format(token)
-      |> CsvHelper.dump_to_stream()
+      |> CSVHelper.dump_to_stream()
       |> Enum.reduce_while(put_resp_params(conn), fn chunk, conn ->
         case Conn.chunk(conn, chunk) do
           {:ok, conn} ->
@@ -50,7 +41,7 @@ defmodule BlockScoutWeb.API.V2.CsvExportController do
     end
   end
 
-  @spec put_resp_params(Conn.t()) :: Conn.t()
+  @spec put_resp_params(Plug.Conn.t()) :: Plug.Conn.t()
   def put_resp_params(conn) do
     conn
     |> put_resp_content_type("application/csv")
@@ -59,71 +50,5 @@ defmodule BlockScoutWeb.API.V2.CsvExportController do
     |> send_chunked(200)
   end
 
-  defp options, do: [paging_options: CsvHelper.paging_options(), api?: true]
-
-  defp items_csv(
-         conn,
-         %{
-           # todo: eliminate this parameter in favour address_hash_param
-           "address_id" => address_hash_string,
-           "from_period" => from_period,
-           "to_period" => to_period
-         } = params,
-         csv_export_module
-       )
-       when is_binary(address_hash_string) do
-    with {:ok, address_hash} <- Chain.string_to_address_hash(address_hash_string),
-         {:address_exists, true} <- {:address_exists, Address.address_exists?(address_hash)},
-         {:recaptcha, true} <- {:recaptcha, CaptchaHelper.recaptcha_passed?(params)} do
-      filter_type = Map.get(params, "filter_type")
-      filter_value = Map.get(params, "filter_value")
-
-      address_hash
-      |> csv_export_module.export(from_period, to_period, fetch_scam_token_toggle([], conn), filter_type, filter_value)
-      |> Enum.reduce_while(put_resp_params(conn), fn chunk, conn ->
-        case Conn.chunk(conn, chunk) do
-          {:ok, conn} ->
-            {:cont, conn}
-
-          {:error, :closed} ->
-            {:halt, conn}
-        end
-      end)
-    else
-      :error ->
-        unprocessable_entity(conn)
-
-      {:address_exists, false} ->
-        not_found(conn)
-
-      {:recaptcha, false} ->
-        conn
-        |> put_status(:forbidden)
-        |> put_view(ApiView)
-        |> render(:message, %{message: "Invalid reCAPTCHA response"})
-    end
-  end
-
-  defp items_csv(conn, _, _), do: not_found(conn)
-
-  def token_transfers_csv(conn, params) do
-    items_csv(conn, params, AddressTokenTransfersCsvExporter)
-  end
-
-  def transactions_csv(conn, params) do
-    items_csv(conn, params, AddressTransactionsCsvExporter)
-  end
-
-  def internal_transactions_csv(conn, params) do
-    items_csv(conn, params, AddressInternalTransactionsCsvExporter)
-  end
-
-  def logs_csv(conn, params) do
-    items_csv(conn, params, AddressLogsCsvExporter)
-  end
-
-  @spec celo_election_rewards_csv(Conn.t(), map()) :: Conn.t()
-  def celo_election_rewards_csv(conn, params) do
-    items_csv(conn, params, AddressCeloElectionRewardsCsvExporter)
-  end
+  defp options, do: [paging_options: CSVHelper.paging_options(), api?: true]
 end

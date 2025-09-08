@@ -65,7 +65,8 @@ defmodule Explorer.GraphQL do
         it in InternalTransaction,
         inner_join: t in assoc(it, :transaction),
         order_by: [asc: it.index],
-        where: it.transaction_hash == ^hash
+        where: it.transaction_hash == ^hash,
+        select: it
       )
 
     query
@@ -121,7 +122,8 @@ defmodule Explorer.GraphQL do
       tt in TokenTransfer,
       inner_join: t in assoc(tt, :transaction),
       where: tt.token_contract_address_hash == ^token_contract_address_hash,
-      order_by: [desc: tt.block_number, desc: tt.log_index]
+      order_by: [desc: tt.block_number, desc: tt.log_index],
+      select: tt
     )
   end
 end

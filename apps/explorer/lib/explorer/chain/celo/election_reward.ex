@@ -39,18 +39,11 @@ defmodule Explorer.Chain.Celo.ElectionReward do
   @type type :: :voter | :validator | :group | :delegated_payment
   @types_enum ~w(voter validator group delegated_payment)a
 
-  @reward_type_url_string_to_atom %{
-    "voter" => :voter,
-    "validator" => :validator,
-    "group" => :group,
-    "delegated-payment" => :delegated_payment
-  }
-
   @reward_type_string_to_atom %{
     "voter" => :voter,
     "validator" => :validator,
     "group" => :group,
-    "delegated_payment" => :delegated_payment
+    "delegated-payment" => :delegated_payment
   }
 
   @reward_type_atom_to_token_atom %{
@@ -120,6 +113,12 @@ defmodule Explorer.Chain.Celo.ElectionReward do
     |> foreign_key_constraint(:block_hash)
     |> foreign_key_constraint(:account_address_hash)
     |> foreign_key_constraint(:associated_account_address_hash)
+
+    # todo: do I need to set this unique constraint here? or it is redundant?
+    # |> unique_constraint(
+    #   [:block_hash, :type, :account_address_hash, :associated_account_address_hash],
+    #   name: :celo_election_rewards_pkey
+    # )
   end
 
   @doc """
@@ -129,7 +128,7 @@ defmodule Explorer.Chain.Celo.ElectionReward do
   def types, do: @types_enum
 
   @doc """
-  Converts a reward type url string to its corresponding atom.
+  Converts a reward type string to its corresponding atom.
 
   ## Parameters
   - `type_string` (`String.t()`): The string representation of the reward type.
@@ -139,15 +138,15 @@ defmodule Explorer.Chain.Celo.ElectionReward do
 
   ## Examples
 
-      iex> ElectionReward.type_from_url_string("voter")
+      iex> ElectionReward.type_from_string("voter")
       {:ok, :voter}
 
-      iex> ElectionReward.type_from_url_string("invalid")
+      iex> ElectionReward.type_from_string("invalid")
       :error
   """
-  @spec type_from_url_string(String.t()) :: {:ok, type} | :error
-  def type_from_url_string(type_string) do
-    Map.fetch(@reward_type_url_string_to_atom, type_string)
+  @spec type_from_string(String.t()) :: {:ok, type} | :error
+  def type_from_string(type_string) do
+    Map.fetch(@reward_type_string_to_atom, type_string)
   end
 
   @doc """
@@ -361,7 +360,7 @@ defmodule Explorer.Chain.Celo.ElectionReward do
          {amount, ""} <- Decimal.parse(amount_string),
          {:ok, associated_account_address_hash} <-
            Hash.Address.cast(associated_account_address_hash_string),
-         {:ok, type} <- Map.fetch(@reward_type_string_to_atom, type_string) do
+         {:ok, type} <- type_from_string(type_string) do
       [
         paging_options: %{
           default_paging_options()
@@ -522,37 +521,4 @@ defmodule Explorer.Chain.Celo.ElectionReward do
       "type" => type
     }
   end
-
-  @doc """
-  Custom filter for `ElectionReward`, inspired by
-  `Chain.where_block_number_in_period/3`.
-
-  TODO: Consider reusing `Chain.where_block_number_in_period/3`. This would
-  require storing or making `merge_select` of `block_number`.
-  """
-  @spec where_block_number_in_period(
-          Ecto.Query.t(),
-          String.t() | integer() | nil,
-          String.t() | integer() | nil
-        ) :: Ecto.Query.t()
-  def where_block_number_in_period(base_query, from_block, to_block)
-      when is_nil(from_block) and not is_nil(to_block),
-      do: where(base_query, [_, block], block.number <= ^to_block)
-
-  def where_block_number_in_period(base_query, from_block, to_block)
-      when not is_nil(from_block) and is_nil(to_block),
-      do: where(base_query, [_, block], block.number > ^from_block)
-
-  def where_block_number_in_period(base_query, from_block, to_block)
-      when is_nil(from_block) and is_nil(to_block),
-      do: base_query
-
-  def where_block_number_in_period(base_query, from_block, to_block),
-    do:
-      where(
-        base_query,
-        [_, block],
-        block.number > ^from_block and
-          block.number <= ^to_block
-      )
 end

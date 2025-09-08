@@ -1,4 +1,4 @@
-defmodule BlockScoutWeb.Account.API.V2.TagsView do
+defmodule BlockScoutWeb.Account.Api.V2.TagsView do
   def render("address_tags.json", %{tags_map: tags_map}) do
     tags_map
   end
@@ -13,6 +13,8 @@ defmodule BlockScoutWeb.Account.API.V2.TagsView do
       }) do
     %{
       personal_transaction_tag: prepare_transaction_tag(personal_transaction_tag),
+      # todo: keep next line for compatibility with frontend and remove when new frontend is bound to `personal_transaction_tag` property
+      personal_tx_tag: prepare_transaction_tag(personal_transaction_tag),
       personal_tags: personal_tags,
       watchlist_names: watchlist_names,
       common_tags: common_tags

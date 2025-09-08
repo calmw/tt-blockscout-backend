@@ -8,23 +8,19 @@ defmodule Indexer.Fetcher.OnDemand.TokenInstanceMetadataRefetch do
   use GenServer
   use Indexer.Fetcher, restart: :permanent
 
-  alias EthereumJSONRPC.NFT
-  alias Explorer.Chain.Cache.Counters.Helper, as: CountersHelper
   alias Explorer.Chain.Events.Publisher
   alias Explorer.Chain.Token.Instance, as: TokenInstance
+  alias Explorer.Counters.Helper, as: CountersHelper
   alias Explorer.SmartContract.Reader
   alias Explorer.Token.MetadataRetriever
-  alias Explorer.Utility.{RateLimiter, TokenInstanceMetadataRefetchAttempt}
-  alias Indexer.NFTMediaHandler.Queue
+  alias Explorer.Utility.TokenInstanceMetadataRefetchAttempt
+  alias Indexer.Fetcher.TokenInstance.Helper, as: TokenInstanceHelper
 
   @max_delay :timer.hours(168)
 
-  @spec trigger_refetch(String.t() | nil, TokenInstance.t()) :: :ok
-  def trigger_refetch(caller \\ nil, token_instance) do
-    case RateLimiter.check_rate(caller, :on_demand) do
-      :allow -> GenServer.cast(__MODULE__, {:refetch, token_instance})
-      :deny -> :ok
-    end
+  @spec trigger_refetch(TokenInstance.t()) :: :ok
+  def trigger_refetch(token_instance) do
+    GenServer.cast(__MODULE__, {:refetch, token_instance})
   end
 
   defp fetch_metadata(token_instance, state) do
@@ -50,11 +46,13 @@ defmodule Indexer.Fetcher.OnDemand.TokenInstanceMetadataRefetch do
   end
 
   defp fetch_and_broadcast_metadata(token_instance, _state) do
-    token_id = NFT.prepare_token_id(token_instance.token_id)
+    from_base_uri? = Application.get_env(:indexer, __MODULE__)[:base_uri_retry?]
+
+    token_id = TokenInstanceHelper.prepare_token_id(token_instance.token_id)
     contract_address_hash_string = to_string(token_instance.token_contract_address_hash)
 
     request =
-      NFT.prepare_request(
+      TokenInstanceHelper.prepare_request(
         token_instance.token.type,
         contract_address_hash_string,
         token_id,
@@ -62,7 +60,7 @@ defmodule Indexer.Fetcher.OnDemand.TokenInstanceMetadataRefetch do
       )
 
     result =
-      case Reader.query_contracts([request], NFT.erc_721_1155_abi(), [], false) do
+      case Reader.query_contracts([request], TokenInstanceHelper.erc_721_1155_abi(), [], false) do
         [ok: [uri]] ->
           {:ok, [uri]}
 
@@ -72,25 +70,20 @@ defmodule Indexer.Fetcher.OnDemand.TokenInstanceMetadataRefetch do
 
     with {:empty_result, false} <- {:empty_result, is_nil(result)},
          {:fetched_metadata, {:ok, %{metadata: metadata}}} <-
-           {:fetched_metadata,
-            result
-            |> MetadataRetriever.fetch_json(token_id, nil, false)
-            |> MetadataRetriever.parse_fetch_json_response()} do
+           {:fetched_metadata, MetadataRetriever.fetch_json(result, token_id, nil, from_base_uri?)} do
       TokenInstance.set_metadata(token_instance, metadata)
 
       Publisher.broadcast(
         %{fetched_token_instance_metadata: [to_string(token_instance.token_contract_address_hash), token_id, metadata]},
         :on_demand
       )
-
-      Queue.process_new_instances([%TokenInstance{token_instance | metadata: metadata}])
     else
       {:empty_result, true} ->
         :ok
 
-      {:fetched_metadata, error} ->
+      {:fetched_metadata, _error} ->
         Logger.error(fn ->
-          "Error while refetching metadata for {#{token_instance.token_contract_address_hash}, #{token_id}}: #{inspect(error)}"
+          "Error while setting address #{inspect(to_string(token_instance.token_contract_address_hash))} metadata"
         end)
 
         TokenInstanceMetadataRefetchAttempt.insert_retries_number(

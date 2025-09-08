@@ -47,7 +47,6 @@ defmodule Indexer.Transform.Addresses do
         ]
       }
   """
-  use Utils.CompileTimeEnvHelper, chain_type: [:explorer, :chain_type]
 
   alias Indexer.Helper
 
@@ -74,18 +73,11 @@ defmodule Indexer.Transform.Addresses do
         %{from: :block_number, to: :fetched_coin_balance_block_number},
         %{from: :to_address_hash, to: :hash}
       ],
-      if @chain_type == :zksync do
-        [
-          %{from: :block_number, to: :fetched_coin_balance_block_number},
-          %{from: :created_contract_address_hash, to: :hash}
-        ]
-      else
-        [
-          %{from: :block_number, to: :fetched_coin_balance_block_number},
-          %{from: :created_contract_address_hash, to: :hash},
-          %{from: :created_contract_code, to: :contract_code}
-        ]
-      end
+      [
+        %{from: :block_number, to: :fetched_coin_balance_block_number},
+        %{from: :created_contract_address_hash, to: :hash},
+        %{from: :created_contract_code, to: :contract_code}
+      ]
     ],
     codes: [
       [

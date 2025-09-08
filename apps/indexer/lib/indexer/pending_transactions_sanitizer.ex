@@ -14,9 +14,10 @@ defmodule Indexer.PendingTransactionsSanitizer do
   alias Ecto.Changeset
   alias Explorer.{Chain, Repo}
   alias Explorer.Chain.{Block, Transaction}
-  alias Explorer.Helper, as: ExplorerHelper
 
-  defstruct interval: nil,
+  @interval :timer.hours(3)
+
+  defstruct interval: @interval,
             json_rpc_named_arguments: []
 
   def child_spec([init_arguments]) do
@@ -39,7 +40,7 @@ defmodule Indexer.PendingTransactionsSanitizer do
   def init(opts) when is_list(opts) do
     state = %__MODULE__{
       json_rpc_named_arguments: Keyword.fetch!(opts, :json_rpc_named_arguments),
-      interval: Application.get_env(:indexer, __MODULE__)[:interval]
+      interval: opts[:interval] || @interval
     }
 
     Process.send_after(self(), :sanitize_pending_transactions, state.interval)
@@ -122,11 +123,11 @@ defmodule Indexer.PendingTransactionsSanitizer do
   end
 
   defp fetch_pending_transaction_and_delete(transaction) do
-    pending_transaction_hash_string = ExplorerHelper.add_0x_prefix(transaction.hash)
+    pending_transaction_hash_string = "0x" <> Base.encode16(transaction.hash.bytes, case: :lower)
 
     case transaction
          |> Changeset.change()
-         |> Repo.delete(timeout: :infinity) do
+         |> Repo.delete() do
       {:ok, _transaction} ->
         Logger.debug(
           "Transaction with hash #{pending_transaction_hash_string} successfully deleted from Blockscout DB because it doesn't exist in the archive node anymore",
@@ -182,7 +183,7 @@ defmodule Indexer.PendingTransactionsSanitizer do
       Repo.update(changeset)
 
       Logger.debug(
-        "Pending transaction with hash #{ExplorerHelper.add_0x_prefix(pending_transaction.hash)} assigned to block ##{block.number} with hash #{block.hash}"
+        "Pending transaction with hash #{"0x" <> Base.encode16(pending_transaction.hash.bytes, case: :lower)} assigned to block ##{block.number} with hash #{block.hash}"
       )
     end
   end

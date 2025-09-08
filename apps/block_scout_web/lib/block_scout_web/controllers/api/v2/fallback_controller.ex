@@ -3,7 +3,7 @@ defmodule BlockScoutWeb.API.V2.FallbackController do
 
   require Logger
 
-  alias BlockScoutWeb.Account.API.V2.UserView
+  alias BlockScoutWeb.Account.Api.V2.UserView
   alias BlockScoutWeb.API.V2.ApiView
   alias Ecto.Changeset
 
@@ -33,7 +33,6 @@ defmodule BlockScoutWeb.API.V2.FallbackController do
   @transaction_interpreter_service_disabled "Transaction Interpretation Service is disabled"
   @disabled "API endpoint is disabled"
   @service_disabled "Service is disabled"
-  @not_a_smart_contract "Address is not a smart-contract"
 
   def call(conn, {:format, _params}) do
     Logger.error(fn ->
@@ -269,7 +268,7 @@ defmodule BlockScoutWeb.API.V2.FallbackController do
     |> render(:message, %{message: @address_is_not_smart_contract})
   end
 
-  def call(conn, {:language, :vyper}) do
+  def call(conn, {:is_vyper_contract, result}) when result == true do
     conn
     |> put_status(:not_found)
     |> put_view(ApiView)
@@ -281,6 +280,13 @@ defmodule BlockScoutWeb.API.V2.FallbackController do
     |> put_status(:not_found)
     |> put_view(ApiView)
     |> render(:message, %{message: @unverified_smart_contract})
+  end
+
+  def call(conn, {:method, _}) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(ApiView)
+    |> render(:message, %{message: @not_found})
   end
 
   def call(conn, {:is_empty_response, true}) do
@@ -309,13 +315,6 @@ defmodule BlockScoutWeb.API.V2.FallbackController do
     |> put_status(501)
     |> put_view(ApiView)
     |> render(:message, %{message: @service_disabled})
-  end
-
-  def call(conn, {:not_a_smart_contract, _}) do
-    conn
-    |> put_status(:not_found)
-    |> put_view(ApiView)
-    |> render(:message, %{message: @not_a_smart_contract})
   end
 
   def call(conn, {code, response}) when is_integer(code) do

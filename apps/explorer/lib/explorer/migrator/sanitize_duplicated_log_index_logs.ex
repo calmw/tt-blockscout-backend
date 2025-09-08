@@ -12,7 +12,7 @@ defmodule Explorer.Migrator.SanitizeDuplicatedLogIndexLogs do
   alias Explorer.Chain.{Log, TokenTransfer}
   alias Explorer.Chain.Token.Instance
   alias Explorer.Migrator.FillingMigration
-  alias Explorer.{QueryHelper, Repo}
+  alias Explorer.Repo
 
   require Logger
 
@@ -91,7 +91,13 @@ defmodule Explorer.Migrator.SanitizeDuplicatedLogIndexLogs do
       Log
       |> where(
         [log],
-        ^QueryHelper.tuple_in([:transaction_hash, :block_hash, :index], prepared_ids)
+        fragment(
+          "(?, ?, ?) = ANY(?::log_id[])",
+          log.transaction_hash,
+          log.block_hash,
+          log.index,
+          ^prepared_ids
+        )
       )
       |> Repo.delete_all(timeout: :infinity)
 
@@ -99,7 +105,13 @@ defmodule Explorer.Migrator.SanitizeDuplicatedLogIndexLogs do
         TokenTransfer
         |> where(
           [token_transfer],
-          ^QueryHelper.tuple_in([:transaction_hash, :block_hash, :log_index], prepared_ids)
+          fragment(
+            "(?, ?, ?) = ANY(?::log_id[])",
+            token_transfer.transaction_hash,
+            token_transfer.block_hash,
+            token_transfer.log_index,
+            ^prepared_ids
+          )
         )
         |> select([token_transfer], token_transfer)
         |> Repo.delete_all(timeout: :infinity)
@@ -124,7 +136,6 @@ defmodule Explorer.Migrator.SanitizeDuplicatedLogIndexLogs do
           :instances,
           :token,
           :transaction,
-          :token_instance,
           :__meta__
         ])
       end)
@@ -146,7 +157,12 @@ defmodule Explorer.Migrator.SanitizeDuplicatedLogIndexLogs do
       Instance
       |> where(
         [nft],
-        ^QueryHelper.tuple_in([:owner_updated_at_block, :owner_updated_at_log_index], nft_instances_params)
+        fragment(
+          "(?, ?) = ANY(?::nft_id[])",
+          nft.owner_updated_at_block,
+          nft.owner_updated_at_log_index,
+          ^nft_instances_params
+        )
       )
       |> Repo.all(timeout: :infinity)
       |> Enum.map(fn nft ->
@@ -183,7 +199,11 @@ defmodule Explorer.Migrator.SanitizeDuplicatedLogIndexLogs do
 
       logs
       |> Enum.sort_by(&{&1.transaction.index, &1.index, &1.transaction_hash})
-      |> Enum.with_index(&{&1, &2})
+      # credo:disable-for-next-line Credo.Check.Refactor.Nesting
+      |> Enum.map_reduce(0, fn log, index ->
+        {{log, index}, index + 1}
+      end)
+      |> elem(0)
     end
   end
 
@@ -194,5 +214,58 @@ defmodule Explorer.Migrator.SanitizeDuplicatedLogIndexLogs do
 
   defp token_transfer_to_index(token_transfer) do
     {token_transfer.transaction_hash, token_transfer.block_hash, token_transfer.log_index}
+  end
+
+  @doc """
+  Callback function that is executed before the migration process starts.
+  """
+  @impl FillingMigration
+  def before_start do
+    """
+    DO $$
+    BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'log_id') THEN
+      CREATE TYPE log_id AS (
+      transaction_hash bytea,
+      block_hash bytea,
+      log_index integer
+    );
+    END IF;
+    END$$;
+    """
+    |> Repo.query!()
+
+    """
+    DO $$
+    BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'nft_id') THEN
+      CREATE TYPE nft_id AS (
+      block_number bigint,
+      log_index integer
+    );
+    END IF;
+    END$$;
+    """
+    |> Repo.query!()
+
+    :ok
+  end
+
+  @doc """
+  Callback function that is executed when the migration process finishes.
+  """
+  @impl FillingMigration
+  def on_finish do
+    """
+    DROP TYPE log_id;
+    """
+    |> Repo.query!([], timeout: :infinity)
+
+    """
+    DROP TYPE nft_id;
+    """
+    |> Repo.query!([], timeout: :infinity)
+
+    :ok
   end
 end

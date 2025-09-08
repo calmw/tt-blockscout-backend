@@ -29,13 +29,28 @@ defmodule Explorer.Chain.Supply.ProofOfAuthority do
     ~D[2019-12-15] => 0.125
   }
 
+#  def circulating do
+#    total() - reserved_supply(Date.utc_today())
+#  end
+
+
+#  def total do
+#    initial_supply() + Chain.block_height()
+#  end
+
+  # 修改总量
+  @genesis_supply Decimal.new("120000000000000000000000000") # 1.2亿 * 1e18
+
   def circulating do
-    total() - reserved_supply(Date.utc_today())
+    # circulating 也可以直接用 total
+    @genesis_supply
   end
 
   def total do
-    initial_supply() + Chain.block_height()
+    # 固定返回 genesis supply
+    @genesis_supply
   end
+  # 修改总量
 
   @doc false
   def initial_supply, do: @initial_supply

@@ -1,14 +1,16 @@
 defmodule BlockScoutWeb.API.V2.StatsController do
   use Phoenix.Controller
-  use Utils.CompileTimeEnvHelper, chain_type: [:explorer, :chain_type]
 
   alias BlockScoutWeb.API.V2.Helper
   alias BlockScoutWeb.Chain.MarketHistoryChartController
   alias Explorer.{Chain, Market}
-  alias Explorer.Chain.Cache.GasPriceOracle
-  alias Explorer.Chain.Cache.Counters.{AddressesCount, AverageBlockTime, BlocksCount, GasUsageSum, TransactionsCount}
+  alias Explorer.Chain.Address.Counters
+  alias Explorer.Chain.Cache.Block, as: BlockCache
+  alias Explorer.Chain.Cache.{GasPriceOracle, GasUsage}
+  alias Explorer.Chain.Cache.Transaction, as: TransactionCache
   alias Explorer.Chain.Supply.RSK
   alias Explorer.Chain.Transaction.History.TransactionStats
+  alias Explorer.Counters.AverageBlockTime
   alias Plug.Conn
   alias Timex.Duration
 
@@ -41,8 +43,8 @@ defmodule BlockScoutWeb.API.V2.StatsController do
     coin_price_change =
       case Market.fetch_recent_history() do
         [_today, yesterday | _] ->
-          exchange_rate.fiat_value && yesterday.closing_price &&
-            exchange_rate.fiat_value
+          exchange_rate.usd_value && yesterday.closing_price &&
+            exchange_rate.usd_value
             |> Decimal.div(yesterday.closing_price)
             |> Decimal.sub(1)
             |> Decimal.mult(100)
@@ -55,19 +57,38 @@ defmodule BlockScoutWeb.API.V2.StatsController do
 
     gas_price = Application.get_env(:block_scout_web, :gas_price)
 
+    # ========== 新增：尝试从 TTX API 获取价格 ==========
+    coin_price =
+      case fetch_coin_price_from_ttx() do
+        {:ok, price} ->
+          price
+        {:error, reason} ->
+#          Logger.error("TTX API coin_price fetch failed: #{inspect(reason)}")
+          require Logger
+          Logger.error(fn -> "TTX API coin_price fetch failed: #{inspect(reason)}" end)
+          # fallback：用原来的 Market.get_coin_exchange_rate()
+#          exchange_rate = Market.get_coin_exchange_rate()
+          exchange_rate.usd_value
+      end
+
+      ###
+#    exchange_rate = Market.get_coin_exchange_rate()
+#    secondary_coin_exchange_rate = Market.get_secondary_coin_exchange_rate()
+      ###
     json(
       conn,
       %{
-        "total_blocks" => BlocksCount.get() |> to_string(),
-        "total_addresses" => AddressesCount.fetch() |> to_string(),
-        "total_transactions" => TransactionsCount.get() |> to_string(),
+        "total_blocks" => BlockCache.estimated_count() |> to_string(),
+        "total_addresses" => @api_true |> Counters.address_estimated_count() |> to_string(),
+        "total_transactions" => TransactionCache.estimated_count() |> to_string(),
         "average_block_time" => AverageBlockTime.average_block_time() |> Duration.to_milliseconds(),
         "coin_image" => exchange_rate.image_url,
         "secondary_coin_image" => secondary_coin_exchange_rate.image_url,
-        "coin_price" => exchange_rate.fiat_value,
+#        "coin_price" => exchange_rate.usd_value,
+        "coin_price" => coin_price,
         "coin_price_change_percentage" => coin_price_change,
-        "secondary_coin_price" => secondary_coin_exchange_rate.fiat_value,
-        "total_gas_used" => GasUsageSum.total() |> to_string(),
+        "secondary_coin_price" => secondary_coin_exchange_rate.usd_value,
+        "total_gas_used" => GasUsage.total() |> to_string(),
         "transactions_today" => Enum.at(transaction_stats, 0).number_of_transactions |> to_string(),
         "gas_used_today" => Enum.at(transaction_stats, 0).gas_used,
         "gas_prices" => gas_prices,
@@ -75,7 +96,7 @@ defmodule BlockScoutWeb.API.V2.StatsController do
         "gas_price_updated_at" => GasPriceOracle.get_updated_at(),
         "static_gas_price" => gas_price,
         "market_cap" => Helper.market_cap(market_cap_type, exchange_rate),
-        "tvl" => exchange_rate.tvl,
+        "tvl" => exchange_rate.tvl_usd,
         "network_utilization_percentage" => network_utilization_percentage()
       }
       |> add_chain_type_fields()
@@ -83,6 +104,31 @@ defmodule BlockScoutWeb.API.V2.StatsController do
     )
   end
 
+  ###
+  defp fetch_coin_price_from_ttx() do
+    url = "https://api.ttx.vip/v2/public/query/exchange/Rate?marketPair=ctcusdt"
+    headers = [{'exch-id', 1}]
+
+    case HTTPoison.get(url, headers, recv_timeout: 5000) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        case Jason.decode(body) do
+          {:ok, %{"code" => "0", "data" => [%{"rate" => rate} | _]}} ->
+            {:ok, Decimal.new(rate)}
+          {:ok, data} ->
+            {:error, {:unexpected_format, data}}
+          error ->
+            error
+        end
+
+      {:ok, %HTTPoison.Response{status_code: code, body: body}} ->
+        {:error, {:http_error, code, body}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  ###
   defp network_utilization_percentage do
     {gas_used, gas_limit} =
       Enum.reduce(Chain.list_blocks(), {Decimal.new(0), Decimal.new(0)}, fn block, {gas_used, gas_limit} ->
@@ -107,8 +153,7 @@ defmodule BlockScoutWeb.API.V2.StatsController do
     transaction_history_data =
       date_range
       |> Enum.map(fn row ->
-        # todo: `transaction_count` property should be removed in favour `transactions_count` property with the next release after 8.0.0
-        %{date: row.date, transaction_count: row.number_of_transactions, transactions_count: row.number_of_transactions}
+        %{date: row.date, transaction_count: row.number_of_transactions}
       end)
 
     json(conn, %{
@@ -129,7 +174,7 @@ defmodule BlockScoutWeb.API.V2.StatsController do
           [
             %{
               today
-              | closing_price: exchange_rate.fiat_value
+              | closing_price: exchange_rate.usd_value
             }
             | the_rest
           ]
@@ -175,12 +220,12 @@ defmodule BlockScoutWeb.API.V2.StatsController do
     end
   end
 
-  case @chain_type do
+  case Application.compile_env(:explorer, :chain_type) do
     :rsk ->
       defp add_chain_type_fields(response) do
-        alias Explorer.Chain.Cache.Counters.Rootstock.LockedBTCCount
+        alias Explorer.Chain.Cache.RootstockLockedBTC
 
-        case LockedBTCCount.get_locked_value() do
+        case RootstockLockedBTC.get_locked_value() do
           rootstock_locked_btc when not is_nil(rootstock_locked_btc) ->
             response |> Map.put("rootstock_locked_btc", rootstock_locked_btc)
 
@@ -191,7 +236,7 @@ defmodule BlockScoutWeb.API.V2.StatsController do
 
     :optimism ->
       defp add_chain_type_fields(response) do
-        import Explorer.Chain.Cache.Counters.Optimism.LastOutputRootSizeCount, only: [fetch: 1]
+        import Explorer.Counters.LastOutputRootSizeCounter, only: [fetch: 1]
         response |> Map.put("last_output_root_size", fetch(@api_true))
       end
 

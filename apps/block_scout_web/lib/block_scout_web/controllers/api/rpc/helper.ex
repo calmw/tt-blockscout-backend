@@ -49,7 +49,12 @@ defmodule BlockScoutWeb.API.RPC.Helper do
     |> String.split(",")
     |> Enum.take(limit)
     |> Enum.uniq()
-    |> Enum.map(&Chain.string_to_address_hash_or_nil/1)
+    |> Enum.map(fn address ->
+      case Chain.string_to_address_hash(address) do
+        {:ok, address_hash} -> address_hash
+        _ -> nil
+      end
+    end)
     |> Enum.reject(&is_nil/1)
   end
 end

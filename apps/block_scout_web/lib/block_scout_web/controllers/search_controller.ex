@@ -1,19 +1,36 @@
 defmodule BlockScoutWeb.SearchController do
   use BlockScoutWeb, :controller
 
+  import BlockScoutWeb.Chain, only: [paging_options: 1, next_page_params: 3, split_list_by_page: 1]
+
   alias BlockScoutWeb.{Controller, SearchView}
   alias Explorer.Chain.Search
   alias Phoenix.View
 
-  def search_results(conn, %{"q" => query, "type" => "JSON"} = params) do
-    [paging_options: paging_options] = Search.parse_paging_options(params)
+  @min_query_length 3
 
-    {search_results, next_page_params} =
+  def search_results(conn, %{"q" => query, "type" => "JSON"}) when byte_size(query) < @min_query_length do
+    json(
+      conn,
+      %{
+        items: [],
+        next_page_path: nil
+      }
+    )
+  end
+
+  def search_results(conn, %{"q" => query, "type" => "JSON"} = params) do
+    [paging_options: paging_options] = paging_options(params)
+    offset = (max(paging_options.page_number, 1) - 1) * paging_options.page_size
+
+    search_results_plus_one =
       paging_options
-      |> Search.joint_search(query)
+      |> Search.joint_search(offset, query)
+
+    {search_results, next_page} = split_list_by_page(search_results_plus_one)
 
     next_page_url =
-      case next_page_params do
+      case next_page_params(next_page, search_results, params) do
         nil ->
           nil
 
