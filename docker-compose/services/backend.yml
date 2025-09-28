@@ -2,10 +2,10 @@ version: '3.9'
 
 services:
   backend:
-    image: blockscout/blockscout:6.8.1.commit.1b1d3402
+#    image: blockscout/blockscout:6.8.1.commit.1b1d3402
 #    image: blockscout-backend-dev:local
 #    image: harbor.devops.tantin.com/web/blockscout-backend:20250826
-#    image: harbor.devops.tantin.com/web/blockscout-backend:20250908
+    image: harbor.devops.tantin.com/web/blockscout-backend:20250908
     working_dir: /app
     pull_policy: always
     restart: always
