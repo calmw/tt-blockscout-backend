@@ -14,7 +14,7 @@ end
 
 ```shell
 
-docker build --no-cache  -f docker/Dockerfile -t harbor.devops.tantin.com/web/blockscout-backend:20250929 .
+docker build --no-cache  -f docker/Dockerfile -t harbor.devops.tantin.com/web/blockscout-backend:202509291 .
 
-docker push harbor.devops.tantin.com/web/blockscout-backend:20250929
+docker push harbor.devops.tantin.com/web/blockscout-backend:202509291
 ```
