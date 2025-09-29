@@ -1086,6 +1086,12 @@ config :indexer, Indexer.Fetcher.Filecoin.AddressInfo.Supervisor,
 config :indexer, Indexer.Fetcher.Filecoin.AddressInfo,
   concurrency: ConfigHelper.parse_integer_env_var("INDEXER_FILECOIN_ADDRESS_INFO_CONCURRENCY", 1)
 
+# CTC 网络配置
+config :explorer, :currency,
+  base_currency: System.get_env("BASE_CURRENCY") || "ETH",
+  coin: System.get_env("COIN") || "ETH",
+  coin_name: System.get_env("COIN_NAME") || "Ethereum"
+
 Code.require_file("#{config_env()}.exs", "config/runtime")
 
 for config <- "../apps/*/config/runtime/#{config_env()}.exs" |> Path.expand(__DIR__) |> Path.wildcard() do
