@@ -17,6 +17,7 @@ services:
       - 'host.docker.internal:host-gateway'
     environment:
       - BASE_CURRENCY=CTC
+      - COIN_NAME=CTC
       - COIN=CTC
     env_file:
       - ../envs/common-blockscout.env
