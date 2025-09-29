@@ -1087,9 +1087,9 @@ config :indexer, Indexer.Fetcher.Filecoin.AddressInfo,
   concurrency: ConfigHelper.parse_integer_env_var("INDEXER_FILECOIN_ADDRESS_INFO_CONCURRENCY", 1)
 
 # CTC 网络配置
-config :explorer, :base_currency, System.get_env("BASE_CURRENCY") || "ETH"
-config :explorer, :coin_name, System.get_env("COIN_NAME") || "ETH"
-config :explorer, :coin, System.get_env("COIN") || "ETH"
+config :explorer, :base_currency, System.get_env("BASE_CURRENCY") || "ETH2"
+config :explorer, :coin_name, System.get_env("COIN_NAME") || "ETH2"
+config :explorer, :coin, System.get_env("COIN") || "ETH2"
 
 
 Code.require_file("#{config_env()}.exs", "config/runtime")
