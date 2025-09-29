@@ -220,8 +220,8 @@ exchange_rates_coin = System.get_env("EXCHANGE_RATES_COIN")
 
 config :explorer,
   mode: ConfigHelper.mode(),
-  coin: System.get_env("COIN") || exchange_rates_coin || "ETH",
-  coin_name: System.get_env("COIN_NAME") || exchange_rates_coin || "ETH",
+  coin: System.get_env("COIN") || exchange_rates_coin || "CTC",
+  coin_name: System.get_env("COIN_NAME") || exchange_rates_coin || "CTC",
   allowed_solidity_evm_versions:
     System.get_env("CONTRACT_VERIFICATION_ALLOWED_SOLIDITY_EVM_VERSIONS") ||
       "homestead,tangerineWhistle,spuriousDragon,byzantium,constantinople,petersburg,istanbul,berlin,london,paris,shanghai,cancun,default",
@@ -1028,7 +1028,7 @@ config :indexer, Indexer.Fetcher.PolygonZkevm.BridgeL1,
   rpc: System.get_env("INDEXER_POLYGON_ZKEVM_L1_RPC"),
   start_block: System.get_env("INDEXER_POLYGON_ZKEVM_L1_BRIDGE_START_BLOCK"),
   bridge_contract: System.get_env("INDEXER_POLYGON_ZKEVM_L1_BRIDGE_CONTRACT"),
-  native_symbol: System.get_env("INDEXER_POLYGON_ZKEVM_L1_BRIDGE_NATIVE_SYMBOL", "ETH"),
+  native_symbol: System.get_env("INDEXER_POLYGON_ZKEVM_L1_BRIDGE_NATIVE_SYMBOL", "CTC"),
   native_decimals: ConfigHelper.parse_integer_env_var("INDEXER_POLYGON_ZKEVM_L1_BRIDGE_NATIVE_DECIMALS", 18),
   rollup_network_id_l1: ConfigHelper.parse_integer_or_nil_env_var("INDEXER_POLYGON_ZKEVM_L1_BRIDGE_NETWORK_ID"),
   rollup_index_l1: ConfigHelper.parse_integer_or_nil_env_var("INDEXER_POLYGON_ZKEVM_L1_BRIDGE_ROLLUP_INDEX")

@@ -36,7 +36,7 @@ defmodule Explorer.Market.History.CatalogerTest do
       "FirstValueInArray": true,
       "ConversionType": {
         "type": "multiply",
-        "conversionSymbol": "ETH"
+        "conversionSymbol": "CTC"
       },
       "Data": [{
         "time": 1522566018,
@@ -47,7 +47,7 @@ defmodule Explorer.Market.History.CatalogerTest do
         "volumeto": 0,
         "close": 10,
         "conversionType": "multiply",
-        "conversionSymbol": "ETH"
+        "conversionSymbol": "CTC"
       }],
       "RateLimit": {},
       "HasWarning": false
@@ -182,7 +182,7 @@ defmodule Explorer.Market.History.CatalogerTest do
         "FirstValueInArray": true,
         "ConversionType": {
           "type": "multiply",
-          "conversionSymbol": "ETH"
+          "conversionSymbol": "CTC"
         },
         "Data": [{
           "time": #{&1},
@@ -193,7 +193,7 @@ defmodule Explorer.Market.History.CatalogerTest do
           "volumeto": 0,
           "close": #{&2},
           "conversionType": "multiply",
-          "conversionSymbol": "ETH"
+          "conversionSymbol": "CTC"
         }],
         "RateLimit": {},
         "HasWarning": false
