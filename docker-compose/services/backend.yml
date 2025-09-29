@@ -6,7 +6,7 @@ services:
 #    image: blockscout-backend-dev:local
 #    image: harbor.devops.tantin.com/web/blockscout-backend:20250826
 #    image: harbor.devops.tantin.com/web/blockscout-backend:20250908
-    image: harbor.devops.tantin.com/chain/blockscout-backend:20250929
+    image: harbor.devops.tantin.com/web/blockscout-backend:20250929
     working_dir: /app
     pull_policy: always
     restart: always
