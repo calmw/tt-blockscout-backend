@@ -157,7 +157,6 @@ defmodule BlockScoutWeb.AddressController do
       address_gas_usage_from_db = address.gas_used || 0
 
       json(conn, %{
-        currency_symbol: "CTC",
         transaction_count: transactions_from_db,
         token_transfer_count: token_transfers_from_db,
         gas_usage_count: address_gas_usage_from_db,
@@ -166,7 +165,6 @@ defmodule BlockScoutWeb.AddressController do
     else
       _ ->
         json(conn, %{
-          currency_symbol: "CTC",
           transaction_count: 0,
           token_transfer_count: 0,
           gas_usage_count: 0,
